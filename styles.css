@@ -1,57 +1,51 @@
 /*
-  Family Tree — "Heirloom Album" Aesthetic
-  Inspired by vintage genealogy charts and treasured family records
+  Family Tree — Clean Light Design
+  Consistent sizing and spacing
 */
 
-/* ============================================
-   CSS Custom Properties
-   ============================================ */
 :root {
-    /* Parchment palette */
-    --parchment-light: #faf6ef;
-    --parchment: #f4ece0;
-    --parchment-dark: #e8dcc8;
-    --parchment-shadow: #d4c4a8;
+    /* Background */
+    --bg: #fafafa;
 
-    /* Blood relative - deep forest green */
-    --lineage-primary: #4a6741;
-    --lineage-light: #6b8c5e;
-    --lineage-glow: rgba(74, 103, 65, 0.15);
+    /* Blood relative cards - warm peachy */
+    --card-bg: #fef8f5;
+    --card-border: #e8d5ca;
+    --card-hover: #fdf3ed;
 
-    /* Spouse - warm terracotta/copper */
-    --spouse-primary: #b87333;
-    --spouse-light: #d4956a;
-    --spouse-glow: rgba(184, 115, 51, 0.15);
+    /* Spouse - clean white */
+    --spouse: #888888;
+    --spouse-bg: #ffffff;
+    --spouse-border: #e5e5e5;
 
-    /* Text colors */
-    --ink-dark: #2c2416;
-    --ink-medium: #4a3f2f;
-    --ink-light: #7a6f5f;
-    --ink-faded: #a69a88;
+    /* Lines */
+    --line: #d4d4d4;
 
-    /* Connector lines */
-    --connector-color: #8b7355;
+    /* Text */
+    --text-primary: #1a1a1a;
+    --text-secondary: #666666;
+    --text-tertiary: #999999;
 
     /* Typography */
-    --font-display: 'Cormorant Garamond', Georgia, serif;
-    --font-body: 'Crimson Pro', Georgia, serif;
+    --font-display: 'Source Serif 4', Georgia, serif;
+    --font-body: 'Outfit', -apple-system, sans-serif;
 
-    /* Spacing */
-    --space-xs: 0.25rem;
-    --space-sm: 0.5rem;
-    --space-md: 1rem;
-    --space-lg: 2rem;
-    --space-xl: 3rem;
-    --space-2xl: 5rem;
+    /* Consistent spacing */
+    --space-xs: 8px;
+    --space-sm: 12px;
+    --space-md: 16px;
+    --space-lg: 24px;
+    --space-xl: 48px;
+    --space-2xl: 64px;
 
-    /* Card dimensions */
-    --card-width: 160px;
-    --card-gap: 20px;
+    /* Consistent card sizing */
+    --card-width: 220px;
+    --card-padding: 20px;
+    --avatar-size: 44px;
+    --line-weight: 2px;
+    --connector-height: 40px;
 }
 
-/* ============================================
-   Base & Reset
-   ============================================ */
+/* Reset */
 *, *::before, *::after {
     margin: 0;
     padding: 0;
@@ -60,587 +54,360 @@
 
 html {
     font-size: 16px;
-    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
 }
 
 body {
     font-family: var(--font-body);
-    background: var(--parchment);
-    color: var(--ink-medium);
+    background: var(--bg);
+    color: var(--text-primary);
+    line-height: 1.5;
     min-height: 100vh;
-    line-height: 1.6;
-    overflow-x: hidden;
 }
 
-/* ============================================
-   Page Texture Overlay
-   ============================================ */
-.page-texture {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 1000;
-    opacity: 0.4;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-}
-
-/* ============================================
-   Container
-   ============================================ */
+/* ==========================================
+   Container & Header
+   ========================================== */
 .container {
-    position: relative;
-    max-width: 1200px;
+    max-width: 1000px;
     margin: 0 auto;
-    padding: var(--space-xl) var(--space-lg);
+    padding: var(--space-2xl) var(--space-lg);
 }
 
-/* ============================================
-   Header
-   ============================================ */
 .header {
     text-align: center;
     margin-bottom: var(--space-2xl);
-    padding-bottom: var(--space-lg);
 }
 
-.header-ornament {
-    font-size: 1.5rem;
-    color: var(--lineage-primary);
-    margin-bottom: var(--space-sm);
-    opacity: 0.7;
+.header-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    margin-bottom: var(--space-xs);
 }
 
 .header h1 {
     font-family: var(--font-display);
-    font-size: clamp(2.5rem, 6vw, 4rem);
+    font-size: 48px;
     font-weight: 400;
-    color: var(--ink-dark);
-    letter-spacing: 0.05em;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+    line-height: 1;
     margin-bottom: var(--space-sm);
 }
 
-.subtitle {
-    font-family: var(--font-display);
-    font-size: 1.2rem;
-    font-style: italic;
-    color: var(--ink-light);
-    letter-spacing: 0.02em;
+.header-meta {
+    font-size: 14px;
+    color: var(--text-secondary);
 }
 
-.header-line {
-    width: 120px;
-    height: 2px;
-    background: linear-gradient(
-        90deg,
-        transparent,
-        var(--connector-color) 20%,
-        var(--connector-color) 80%,
-        transparent
-    );
-    margin: var(--space-lg) auto 0;
-}
-
-/* ============================================
-   Tree Container
-   ============================================ */
-.tree-container {
-    overflow-x: auto;
-    padding: var(--space-md);
-    margin: 0 calc(-1 * var(--space-lg));
-}
-
+/* ==========================================
+   Tree Structure
+   ========================================== */
 .tree {
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-width: max-content;
-    padding: 0 var(--space-lg);
 }
 
-/* ============================================
-   Generations
-   ============================================ */
 .generation {
-    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-bottom: var(--space-xl);
+    width: 100%;
 }
 
-.generation-header {
-    display: flex;
-    align-items: center;
-    gap: var(--space-md);
+.gen-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
     margin-bottom: var(--space-lg);
 }
 
-.gen-numeral {
-    font-family: var(--font-display);
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: var(--lineage-primary);
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid var(--lineage-primary);
-    border-radius: 50%;
-}
-
-.gen-title {
-    font-family: var(--font-display);
-    font-size: 1.3rem;
-    font-weight: 400;
-    color: var(--ink-medium);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-}
-
-/* ============================================
-   Family Groups & Units
-   ============================================ */
-.family-group {
+.gen-content {
     display: flex;
     justify-content: center;
-    gap: 80px;
+    gap: var(--space-lg);
 }
 
-.family-unit {
+.gen-content.two-cols {
+    width: 100%;
+    justify-content: center;
+    gap: var(--space-lg);
+}
+
+/* ==========================================
+   Branch Structure
+   ========================================== */
+.branch {
     display: flex;
     flex-direction: column;
     align-items: center;
 }
 
-.couple {
+.children-group {
     display: flex;
-    align-items: flex-start;
+    gap: var(--space-lg);
+}
+
+.child-branch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* ==========================================
+   Person Cards - All same size
+   ========================================== */
+.person-card {
+    position: relative;
+    width: var(--card-width);
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    padding: var(--card-padding);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.person-card:hover,
+.person-card:focus {
+    background: var(--card-hover);
+    border-color: #ccc;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.person-card:focus {
+    outline: 2px solid var(--spouse);
+    outline-offset: 2px;
+}
+
+/* All cards same size - remove .child modifier */
+.person-card.child {
+    width: var(--card-width);
+    padding: var(--card-padding);
+}
+
+.card-main {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+/* Avatar - consistent size */
+.avatar {
+    width: var(--avatar-size);
+    height: var(--avatar-size);
+    background: #f0f0f0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.avatar span {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+/* Remove small variant - all same size */
+.avatar.small {
+    width: var(--avatar-size);
+    height: var(--avatar-size);
+}
+
+.avatar.small span {
+    font-size: 14px;
+}
+
+/* Info */
+.info {
+    flex: 1;
+    min-width: 0;
+}
+
+.name {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+
+/* All names same size */
+.person-card.child .name {
+    font-size: 16px;
+}
+
+.years {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.maiden {
+    display: block;
+    font-size: 12px;
+    font-style: italic;
+    color: var(--text-tertiary);
+    margin-top: 2px;
+}
+
+/* ==========================================
+   Spouse Inline (inside card)
+   ========================================== */
+.spouse-inline {
+    margin-top: var(--space-md);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
     gap: var(--space-sm);
 }
 
-.children-cluster {
-    display: flex;
-    gap: var(--card-gap);
-}
-
-/* ============================================
-   Person Cards
-   ============================================ */
-.person {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: var(--card-width);
-    padding: var(--space-lg) var(--space-md) var(--space-md);
-    background:
-        linear-gradient(135deg, var(--parchment-light) 0%, var(--parchment) 100%);
-    border: 2px solid var(--parchment-shadow);
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.person:hover,
-.person:focus {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(44, 36, 22, 0.15);
-}
-
-.person:focus {
-    outline: none;
-    border-color: var(--lineage-primary);
-}
-
-/* Blood relative styling */
-.person.blood-relative {
-    border-color: var(--lineage-primary);
-    box-shadow:
-        0 4px 20px var(--lineage-glow),
-        inset 0 0 0 1px rgba(74, 103, 65, 0.1);
-}
-
-.person.blood-relative:hover {
-    box-shadow:
-        0 12px 40px var(--lineage-glow),
-        inset 0 0 0 1px rgba(74, 103, 65, 0.2);
-}
-
-/* Spouse styling */
-.person.spouse {
-    border-color: var(--spouse-primary);
-    border-style: dashed;
-    box-shadow:
-        0 4px 20px var(--spouse-glow),
-        inset 0 0 0 1px rgba(184, 115, 51, 0.1);
-}
-
-.person.spouse:hover {
-    box-shadow:
-        0 12px 40px var(--spouse-glow),
-        inset 0 0 0 1px rgba(184, 115, 51, 0.2);
-}
-
-/* Card corner decorations */
-.card-corner {
-    position: absolute;
-    width: 12px;
-    height: 12px;
-    border-color: inherit;
-    border-style: solid;
-    border-width: 0;
-    opacity: 0.5;
-}
-
-.card-corner.tl { top: 4px; left: 4px; border-top-width: 2px; border-left-width: 2px; }
-.card-corner.tr { top: 4px; right: 4px; border-top-width: 2px; border-right-width: 2px; }
-.card-corner.bl { bottom: 4px; left: 4px; border-bottom-width: 2px; border-left-width: 2px; }
-.card-corner.br { bottom: 4px; right: 4px; border-bottom-width: 2px; border-right-width: 2px; }
-
-/* Photo frame */
-.person-frame {
-    margin-bottom: var(--space-md);
-}
-
-.person-photo {
-    width: 72px;
-    height: 72px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 3px solid var(--parchment-light);
-    box-shadow:
-        0 2px 8px rgba(44, 36, 22, 0.1),
-        inset 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.blood-relative .person-photo {
-    background: linear-gradient(
-        145deg,
-        var(--lineage-light) 0%,
-        var(--lineage-primary) 100%
-    );
-}
-
-.spouse .person-photo {
-    background: linear-gradient(
-        145deg,
-        var(--spouse-light) 0%,
-        var(--spouse-primary) 100%
-    );
-}
-
-.initials {
-    font-family: var(--font-display);
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: white;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-}
-
-/* Person details */
-.person-details {
-    text-align: center;
-}
-
-.person-name {
-    font-family: var(--font-display);
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--ink-dark);
-    line-height: 1.3;
-    margin-bottom: var(--space-xs);
-}
-
-.person-life {
-    font-size: 0.85rem;
-    color: var(--ink-light);
+.spouse-inline .spouse-label {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
     letter-spacing: 0.05em;
+    color: var(--text-tertiary);
 }
 
-.relation-tag {
-    display: inline-block;
-    font-size: 0.7rem;
-    font-style: italic;
-    color: var(--spouse-primary);
-    background: rgba(184, 115, 51, 0.1);
-    padding: 2px 10px;
-    border-radius: 10px;
-    margin-top: var(--space-xs);
+.spouse-inline .spouse-name {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
 }
 
-.relation-tag.maiden {
-    color: var(--lineage-primary);
-    background: rgba(74, 103, 65, 0.1);
-}
-
-/* ============================================
-   Marriage Bond
-   ============================================ */
-.marriage-bond {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    align-self: center;
-    margin-top: 40px;
-    width: 36px;
-    height: 36px;
-}
-
-.bond-symbol {
-    font-size: 1.2rem;
-    color: var(--spouse-primary);
-    opacity: 0.8;
-}
-
-/* ============================================
-   Lineage Connectors
-   ============================================ */
-.lineage-connector {
-    position: relative;
+/* ==========================================
+   Connector Lines - Consistent spacing
+   ========================================== */
+.connector-down {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-top: var(--space-md);
+    height: calc(var(--connector-height) + var(--space-xl));
+    padding-top: var(--space-lg);
+    padding-bottom: var(--space-lg);
 }
 
-.connector-vertical {
-    width: 2px;
-    height: 30px;
-    background: var(--connector-color);
+.line-v {
+    width: var(--line-weight);
+    height: var(--connector-height);
+    background: var(--line);
 }
 
-.connector-horizontal {
-    width: 320px;
-    height: 2px;
-    background: var(--connector-color);
+.line-h {
+    width: 512px;
+    height: var(--line-weight);
+    background: var(--line);
 }
 
-.connector-drop {
-    position: absolute;
-    bottom: -20px;
-    width: 2px;
-    height: 20px;
-    background: var(--connector-color);
+.line-h.short {
+    width: 220px;
 }
 
-.connector-drop.left {
-    left: 0;
-}
-
-.connector-drop.right {
-    right: 0;
-}
-
-.lineage-connector.children-two .connector-horizontal {
-    width: 180px;
-}
-
-.lineage-connector.children-two .connector-drop.left {
-    left: 0;
-}
-
-.lineage-connector.children-two .connector-drop.right {
-    right: 0;
-}
-
-/* ============================================
-   Sibling Bridge
-   ============================================ */
-.sibling-bridge {
-    position: absolute;
-    top: 70px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 360px;
-    height: 2px;
-    background: var(--connector-color);
-}
-
-.sibling-bridge::before,
-.sibling-bridge::after {
-    content: '';
-    position: absolute;
-    width: 2px;
-    height: 24px;
-    background: var(--connector-color);
-    bottom: 0;
-}
-
-.sibling-bridge::before {
-    left: 0;
-}
-
-.sibling-bridge::after {
-    right: 0;
-}
-
-/* ============================================
-   Legend
-   ============================================ */
-.legend {
-    max-width: 600px;
-    margin: var(--space-2xl) auto var(--space-xl);
-    padding: var(--space-lg);
-    background: var(--parchment-light);
-    border: 1px solid var(--parchment-shadow);
-}
-
-.legend-title {
-    font-family: var(--font-display);
-    font-size: 1.2rem;
-    font-weight: 600;
-    color: var(--ink-dark);
-    text-align: center;
+.connector-up {
+    width: var(--line-weight);
+    height: var(--connector-height);
+    background: var(--line);
     margin-bottom: var(--space-lg);
-    letter-spacing: 0.05em;
 }
 
-.legend-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-md);
+/* ==========================================
+   Legend
+   ========================================== */
+.legend {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-xl);
+    margin-top: var(--space-2xl);
+    padding-top: var(--space-xl);
+    border-top: 1px solid var(--line);
 }
 
 .legend-item {
     display: flex;
     align-items: center;
-    gap: var(--space-md);
+    gap: var(--space-sm);
+    font-size: 13px;
+    color: var(--text-secondary);
 }
 
-.legend-swatch {
-    flex-shrink: 0;
-    width: 40px;
-    height: 28px;
-    background: var(--parchment-light);
+.legend-card {
+    width: 28px;
+    height: 18px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
 }
 
-.legend-swatch.blood {
-    border: 2px solid var(--lineage-primary);
+.legend-spouse {
+    width: 48px;
+    height: 1px;
+    background: var(--card-border);
 }
 
-.legend-swatch.spouse-swatch {
-    border: 2px dashed var(--spouse-primary);
+.legend-line {
+    width: 24px;
+    height: var(--line-weight);
+    background: var(--line);
 }
 
-.legend-swatch.connector {
-    width: 2px;
-    height: 28px;
-    background: var(--connector-color);
-    margin: 0 19px;
-}
-
-.legend-swatch.bond {
-    width: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2rem;
-    color: var(--spouse-primary);
-    background: transparent;
-}
-
-.legend-swatch.bond::before {
-    content: '⚭';
-}
-
-.legend-text {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.legend-text strong {
-    font-family: var(--font-display);
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--ink-dark);
-}
-
-.legend-text span {
-    font-size: 0.8rem;
-    color: var(--ink-light);
-}
-
-/* ============================================
-   Footer
-   ============================================ */
-.footer {
-    text-align: center;
-    padding: var(--space-lg) 0;
-    border-top: 1px solid var(--parchment-shadow);
-}
-
-.footer p {
-    font-family: var(--font-display);
-    font-size: 0.9rem;
-    color: var(--ink-faded);
-    letter-spacing: 0.1em;
-}
-
-/* ============================================
-   Responsive Design
-   ============================================ */
+/* ==========================================
+   Responsive
+   ========================================== */
 @media (max-width: 900px) {
-    .family-group {
-        gap: 40px;
-    }
-
-    .sibling-bridge {
-        width: 280px;
-    }
-
-    .connector-horizontal {
-        width: 240px;
-    }
-}
-
-@media (max-width: 768px) {
-    .container {
-        padding: var(--space-lg) var(--space-md);
-    }
-
-    .family-group {
+    .gen-content.two-cols {
         flex-direction: column;
         align-items: center;
         gap: var(--space-xl);
     }
 
-    .sibling-bridge {
+    .spouse-tag {
+        position: relative;
+        left: auto;
+        top: auto;
+        transform: none;
+        margin-top: var(--space-sm);
+        width: 100%;
+    }
+
+    .spouse-tag::before {
         display: none;
     }
 
-    .legend-grid {
-        grid-template-columns: 1fr;
+    .line-h {
+        display: none;
     }
 
-    .person {
-        width: 140px;
-        padding: var(--space-md) var(--space-sm) var(--space-sm);
+    .children-group {
+        flex-direction: column;
+        gap: var(--space-lg);
     }
 
-    .person-photo {
-        width: 60px;
-        height: 60px;
-    }
-
-    .initials {
-        font-size: 1.2rem;
-    }
-
-    .person-name {
-        font-size: 0.9rem;
+    .legend {
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-md);
     }
 }
 
-/* ============================================
+/* ==========================================
    Animations
-   ============================================ */
-@keyframes fadeIn {
+   ========================================== */
+@keyframes fadeUp {
     from {
         opacity: 0;
-        transform: translateY(10px);
+        transform: translateY(12px);
     }
     to {
         opacity: 1;
@@ -649,13 +416,9 @@ body {
 }
 
 .generation {
-    animation: fadeIn 0.6s ease-out both;
+    animation: fadeUp 0.4s ease both;
 }
 
 .generation[data-gen="1"] { animation-delay: 0.1s; }
-.generation[data-gen="2"] { animation-delay: 0.3s; }
-.generation[data-gen="3"] { animation-delay: 0.5s; }
-
-.person {
-    animation: fadeIn 0.4s ease-out both;
-}
+.generation[data-gen="2"] { animation-delay: 0.2s; }
+.generation[data-gen="3"] { animation-delay: 0.3s; }
