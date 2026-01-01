@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Family Tree</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>The Johnson Family</h1>
+            <p class="subtitle">Our family story, connected through generations</p>
+        </header>
+
+        <div class="tree-container">
+            <div class="tree">
+
+                <!-- Generation 1: Grandparents -->
+                <div class="generation">
+                    <div class="generation-label">Generation 1 — Grandparents</div>
+                    <div class="family-group">
+                        <div class="family-unit">
+                            <div class="couple">
+                                <div class="person">
+                                    <div class="person-photo">RJ</div>
+                                    <div class="person-name">Robert Johnson</div>
+                                    <div class="person-years">1945 - 2020</div>
+                                </div>
+                                <div class="spouse-connector"></div>
+                                <div class="person spouse">
+                                    <div class="person-photo">EJ</div>
+                                    <div class="person-name">Eleanor Johnson</div>
+                                    <div class="person-years">1948 - Present</div>
+                                    <div class="badge">married in</div>
+                                </div>
+                            </div>
+                            <div class="parent-connector"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Generation 2: Parents -->
+                <div class="generation">
+                    <div class="generation-label">Generation 2 — Parents</div>
+                    <div class="family-group">
+                        <!-- Michael's family -->
+                        <div class="family-unit">
+                            <div class="siblings-connector two-children"></div>
+                            <div class="couple">
+                                <div class="person blood-relative">
+                                    <div class="person-photo">MJ</div>
+                                    <div class="person-name">Michael Johnson</div>
+                                    <div class="person-years">1970 - Present</div>
+                                </div>
+                                <div class="spouse-connector"></div>
+                                <div class="person spouse">
+                                    <div class="person-photo">SJ</div>
+                                    <div class="person-name">Sarah Johnson</div>
+                                    <div class="person-years">1972 - Present</div>
+                                    <div class="badge">married in</div>
+                                </div>
+                            </div>
+                            <div class="parent-connector"></div>
+                        </div>
+
+                        <!-- Jennifer's family -->
+                        <div class="family-unit">
+                            <div class="siblings-connector two-children sibling-right"></div>
+                            <div class="couple">
+                                <div class="person blood-relative">
+                                    <div class="person-photo">JJ</div>
+                                    <div class="person-name">Jennifer Davis</div>
+                                    <div class="person-years">1973 - Present</div>
+                                    <div class="badge maiden">née Johnson</div>
+                                </div>
+                                <div class="spouse-connector"></div>
+                                <div class="person spouse">
+                                    <div class="person-photo">TD</div>
+                                    <div class="person-name">Thomas Davis</div>
+                                    <div class="person-years">1971 - Present</div>
+                                    <div class="badge">married in</div>
+                                </div>
+                            </div>
+                            <div class="parent-connector"></div>
+                        </div>
+                    </div>
+
+                    <!-- Sibling connection line between Michael and Jennifer -->
+                    <div class="sibling-bridge"></div>
+                </div>
+
+                <!-- Generation 3: Children -->
+                <div class="generation">
+                    <div class="generation-label">Generation 3 — Children</div>
+                    <div class="family-group">
+                        <!-- Michael & Sarah's children -->
+                        <div class="children-group">
+                            <div class="siblings-connector two-children"></div>
+                            <div class="children">
+                                <div class="person blood-relative">
+                                    <div class="child-connector"></div>
+                                    <div class="person-photo">EJ</div>
+                                    <div class="person-name">Emma Johnson</div>
+                                    <div class="person-years">1995 - Present</div>
+                                </div>
+                                <div class="person blood-relative">
+                                    <div class="child-connector"></div>
+                                    <div class="person-photo">LJ</div>
+                                    <div class="person-name">Liam Johnson</div>
+                                    <div class="person-years">1998 - Present</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="family-gap"></div>
+
+                        <!-- Jennifer & Thomas's children -->
+                        <div class="children-group">
+                            <div class="siblings-connector two-children"></div>
+                            <div class="children">
+                                <div class="person blood-relative">
+                                    <div class="child-connector"></div>
+                                    <div class="person-photo">OD</div>
+                                    <div class="person-name">Olivia Davis</div>
+                                    <div class="person-years">1999 - Present</div>
+                                </div>
+                                <div class="person blood-relative">
+                                    <div class="child-connector"></div>
+                                    <div class="person-photo">ND</div>
+                                    <div class="person-name">Noah Davis</div>
+                                    <div class="person-years">2002 - Present</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="legend">
+            <div class="legend-title">How to read this tree</div>
+            <div class="legend-items">
+                <div class="legend-item">
+                    <div class="legend-line blood"></div>
+                    <span>Blood relative (Johnson family line)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-line spouse-line"></div>
+                    <span>Married into family</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-line vertical"></div>
+                    <span>Parent → Child connection</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
