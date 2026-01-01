@@ -1,263 +1,471 @@
 /*
-  Family Tree Styles
-  Warm and personal aesthetic - feels like a family keepsake
+  Family Tree — "Heirloom Album" Aesthetic
+  Inspired by vintage genealogy charts and treasured family records
 */
 
-* {
+/* ============================================
+   CSS Custom Properties
+   ============================================ */
+:root {
+    /* Parchment palette */
+    --parchment-light: #faf6ef;
+    --parchment: #f4ece0;
+    --parchment-dark: #e8dcc8;
+    --parchment-shadow: #d4c4a8;
+
+    /* Blood relative - deep forest green */
+    --lineage-primary: #4a6741;
+    --lineage-light: #6b8c5e;
+    --lineage-glow: rgba(74, 103, 65, 0.15);
+
+    /* Spouse - warm terracotta/copper */
+    --spouse-primary: #b87333;
+    --spouse-light: #d4956a;
+    --spouse-glow: rgba(184, 115, 51, 0.15);
+
+    /* Text colors */
+    --ink-dark: #2c2416;
+    --ink-medium: #4a3f2f;
+    --ink-light: #7a6f5f;
+    --ink-faded: #a69a88;
+
+    /* Connector lines */
+    --connector-color: #8b7355;
+
+    /* Typography */
+    --font-display: 'Cormorant Garamond', Georgia, serif;
+    --font-body: 'Crimson Pro', Georgia, serif;
+
+    /* Spacing */
+    --space-xs: 0.25rem;
+    --space-sm: 0.5rem;
+    --space-md: 1rem;
+    --space-lg: 2rem;
+    --space-xl: 3rem;
+    --space-2xl: 5rem;
+
+    /* Card dimensions */
+    --card-width: 160px;
+    --card-gap: 20px;
+}
+
+/* ============================================
+   Base & Reset
+   ============================================ */
+*, *::before, *::after {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
+html {
+    font-size: 16px;
+    scroll-behavior: smooth;
+}
+
 body {
-    font-family: 'Georgia', serif;
-    background: linear-gradient(135deg, #fdf8f3 0%, #f5ebe0 100%);
+    font-family: var(--font-body);
+    background: var(--parchment);
+    color: var(--ink-medium);
     min-height: 100vh;
-    color: #4a4238;
+    line-height: 1.6;
+    overflow-x: hidden;
 }
 
+/* ============================================
+   Page Texture Overlay
+   ============================================ */
+.page-texture {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.4;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+
+/* ============================================
+   Container
+   ============================================ */
 .container {
-    max-width: 1400px;
+    position: relative;
+    max-width: 1200px;
     margin: 0 auto;
-    padding: 40px 20px;
+    padding: var(--space-xl) var(--space-lg);
 }
 
-/* Header */
+/* ============================================
+   Header
+   ============================================ */
 .header {
     text-align: center;
-    margin-bottom: 50px;
+    margin-bottom: var(--space-2xl);
+    padding-bottom: var(--space-lg);
+}
+
+.header-ornament {
+    font-size: 1.5rem;
+    color: var(--lineage-primary);
+    margin-bottom: var(--space-sm);
+    opacity: 0.7;
 }
 
 .header h1 {
-    font-size: 2.5rem;
-    font-weight: normal;
-    color: #5d4e3c;
-    margin-bottom: 10px;
-    letter-spacing: 1px;
+    font-family: var(--font-display);
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    font-weight: 400;
+    color: var(--ink-dark);
+    letter-spacing: 0.05em;
+    margin-bottom: var(--space-sm);
 }
 
 .subtitle {
-    font-size: 1.1rem;
-    color: #8b7d6b;
+    font-family: var(--font-display);
+    font-size: 1.2rem;
     font-style: italic;
+    color: var(--ink-light);
+    letter-spacing: 0.02em;
 }
 
-/* Tree Container */
+.header-line {
+    width: 120px;
+    height: 2px;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        var(--connector-color) 20%,
+        var(--connector-color) 80%,
+        transparent
+    );
+    margin: var(--space-lg) auto 0;
+}
+
+/* ============================================
+   Tree Container
+   ============================================ */
 .tree-container {
     overflow-x: auto;
-    padding: 20px;
+    padding: var(--space-md);
+    margin: 0 calc(-1 * var(--space-lg));
 }
 
 .tree {
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-width: fit-content;
+    min-width: max-content;
+    padding: 0 var(--space-lg);
 }
 
-/* Generation Rows */
+/* ============================================
+   Generations
+   ============================================ */
 .generation {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin: 10px 0;
-    position: relative;
+    margin-bottom: var(--space-xl);
 }
 
-.generation-label {
-    font-size: 0.85rem;
-    color: #a89880;
+.generation-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
+}
+
+.gen-numeral {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--lineage-primary);
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--lineage-primary);
+    border-radius: 50%;
+}
+
+.gen-title {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    font-weight: 400;
+    color: var(--ink-medium);
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    letter-spacing: 2px;
-    margin-bottom: 20px;
-    padding: 5px 20px;
-    background: rgba(255, 255, 255, 0.5);
-    border-radius: 20px;
 }
 
+/* ============================================
+   Family Groups & Units
+   ============================================ */
 .family-group {
     display: flex;
     justify-content: center;
-    align-items: flex-start;
-    gap: 60px;
+    gap: 80px;
 }
 
-/* Family Unit - contains a couple and their connector down to children */
 .family-unit {
     display: flex;
     flex-direction: column;
     align-items: center;
-    position: relative;
 }
 
-/* Couples */
 .couple {
     display: flex;
     align-items: flex-start;
-    gap: 10px;
+    gap: var(--space-sm);
 }
 
-.spouse-connector {
-    width: 30px;
-    height: 3px;
-    background: #d4a574;
-    border-radius: 2px;
-    margin-top: 50px;
+.children-cluster {
+    display: flex;
+    gap: var(--card-gap);
 }
 
-/* Person Cards */
+/* ============================================
+   Person Cards
+   ============================================ */
 .person {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 20px 15px;
-    background: white;
-    border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(139, 109, 76, 0.12);
+    width: var(--card-width);
+    padding: var(--space-lg) var(--space-md) var(--space-md);
+    background:
+        linear-gradient(135deg, var(--parchment-light) 0%, var(--parchment) 100%);
+    border: 2px solid var(--parchment-shadow);
     cursor: pointer;
     transition: all 0.3s ease;
-    min-width: 140px;
-    border: 3px solid #e8ddd0;
-    position: relative;
 }
 
-.person:hover {
+.person:hover,
+.person:focus {
     transform: translateY(-4px);
-    box-shadow: 0 8px 30px rgba(139, 109, 76, 0.2);
+    box-shadow: 0 12px 40px rgba(44, 36, 22, 0.15);
 }
 
-/* Blood relative - thicker border in family color */
+.person:focus {
+    outline: none;
+    border-color: var(--lineage-primary);
+}
+
+/* Blood relative styling */
 .person.blood-relative {
-    border-color: #7a9b6d;
+    border-color: var(--lineage-primary);
+    box-shadow:
+        0 4px 20px var(--lineage-glow),
+        inset 0 0 0 1px rgba(74, 103, 65, 0.1);
 }
 
-/* Spouse - dashed border to show "married in" */
+.person.blood-relative:hover {
+    box-shadow:
+        0 12px 40px var(--lineage-glow),
+        inset 0 0 0 1px rgba(74, 103, 65, 0.2);
+}
+
+/* Spouse styling */
 .person.spouse {
-    border-color: #d4a574;
+    border-color: var(--spouse-primary);
     border-style: dashed;
+    box-shadow:
+        0 4px 20px var(--spouse-glow),
+        inset 0 0 0 1px rgba(184, 115, 51, 0.1);
+}
+
+.person.spouse:hover {
+    box-shadow:
+        0 12px 40px var(--spouse-glow),
+        inset 0 0 0 1px rgba(184, 115, 51, 0.2);
+}
+
+/* Card corner decorations */
+.card-corner {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-color: inherit;
+    border-style: solid;
+    border-width: 0;
+    opacity: 0.5;
+}
+
+.card-corner.tl { top: 4px; left: 4px; border-top-width: 2px; border-left-width: 2px; }
+.card-corner.tr { top: 4px; right: 4px; border-top-width: 2px; border-right-width: 2px; }
+.card-corner.bl { bottom: 4px; left: 4px; border-bottom-width: 2px; border-left-width: 2px; }
+.card-corner.br { bottom: 4px; right: 4px; border-bottom-width: 2px; border-right-width: 2px; }
+
+/* Photo frame */
+.person-frame {
+    margin-bottom: var(--space-md);
 }
 
 .person-photo {
-    width: 70px;
-    height: 70px;
+    width: 72px;
+    height: 72px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #e8d5c4 0%, #d4a574 100%);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.4rem;
-    color: #5d4e3c;
-    font-weight: 500;
-    margin-bottom: 12px;
-    border: 3px solid #fff;
-    box-shadow: 0 2px 10px rgba(139, 109, 76, 0.2);
+    border: 3px solid var(--parchment-light);
+    box-shadow:
+        0 2px 8px rgba(44, 36, 22, 0.1),
+        inset 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .blood-relative .person-photo {
-    background: linear-gradient(135deg, #c8e6c0 0%, #7a9b6d 100%);
+    background: linear-gradient(
+        145deg,
+        var(--lineage-light) 0%,
+        var(--lineage-primary) 100%
+    );
+}
+
+.spouse .person-photo {
+    background: linear-gradient(
+        145deg,
+        var(--spouse-light) 0%,
+        var(--spouse-primary) 100%
+    );
+}
+
+.initials {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Person details */
+.person-details {
+    text-align: center;
 }
 
 .person-name {
-    font-size: 0.95rem;
+    font-family: var(--font-display);
+    font-size: 1rem;
     font-weight: 600;
-    color: #4a4238;
-    text-align: center;
-    margin-bottom: 4px;
+    color: var(--ink-dark);
     line-height: 1.3;
+    margin-bottom: var(--space-xs);
 }
 
-.person-years {
-    font-size: 0.8rem;
-    color: #a89880;
+.person-life {
+    font-size: 0.85rem;
+    color: var(--ink-light);
+    letter-spacing: 0.05em;
 }
 
-/* Badge for spouse/maiden name */
-.badge {
+.relation-tag {
+    display: inline-block;
     font-size: 0.7rem;
-    color: #b89b7a;
-    background: #faf6f1;
-    padding: 2px 8px;
-    border-radius: 10px;
-    margin-top: 6px;
     font-style: italic;
+    color: var(--spouse-primary);
+    background: rgba(184, 115, 51, 0.1);
+    padding: 2px 10px;
+    border-radius: 10px;
+    margin-top: var(--space-xs);
 }
 
-.badge.maiden {
-    color: #6b8c5e;
-    background: #f0f5ed;
+.relation-tag.maiden {
+    color: var(--lineage-primary);
+    background: rgba(74, 103, 65, 0.1);
 }
 
-/* Parent to children connector - vertical line going down */
-.parent-connector {
-    width: 3px;
-    height: 40px;
-    background: #7a9b6d;
-    margin-top: 15px;
+/* ============================================
+   Marriage Bond
+   ============================================ */
+.marriage-bond {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    align-self: center;
+    margin-top: 40px;
+    width: 36px;
+    height: 36px;
 }
 
-/* Siblings connector - horizontal line with drops to each child */
-.siblings-connector {
-    height: 3px;
-    background: #7a9b6d;
+.bond-symbol {
+    font-size: 1.2rem;
+    color: var(--spouse-primary);
+    opacity: 0.8;
+}
+
+/* ============================================
+   Lineage Connectors
+   ============================================ */
+.lineage-connector {
     position: relative;
-    margin-bottom: 15px;
-}
-
-.siblings-connector.two-children {
-    width: 160px;
-}
-
-/* Children group */
-.children-group {
     display: flex;
     flex-direction: column;
     align-items: center;
+    margin-top: var(--space-md);
 }
 
-.children {
-    display: flex;
-    gap: 20px;
+.connector-vertical {
+    width: 2px;
+    height: 30px;
+    background: var(--connector-color);
 }
 
-/* Child connector - small vertical line above each child */
-.child-connector {
-    width: 3px;
-    height: 20px;
-    background: #7a9b6d;
+.connector-horizontal {
+    width: 320px;
+    height: 2px;
+    background: var(--connector-color);
+}
+
+.connector-drop {
     position: absolute;
-    top: -35px;
-    left: 50%;
-    transform: translateX(-50%);
+    bottom: -20px;
+    width: 2px;
+    height: 20px;
+    background: var(--connector-color);
 }
 
-.children .person {
-    position: relative;
+.connector-drop.left {
+    left: 0;
 }
 
-/* Gap between different family branches */
-.family-gap {
-    width: 80px;
+.connector-drop.right {
+    right: 0;
 }
 
-/* Sibling bridge - connects siblings in Generation 2 */
+.lineage-connector.children-two .connector-horizontal {
+    width: 180px;
+}
+
+.lineage-connector.children-two .connector-drop.left {
+    left: 0;
+}
+
+.lineage-connector.children-two .connector-drop.right {
+    right: 0;
+}
+
+/* ============================================
+   Sibling Bridge
+   ============================================ */
 .sibling-bridge {
     position: absolute;
-    top: 85px;
+    top: 70px;
     left: 50%;
     transform: translateX(-50%);
-    width: 340px;
-    height: 3px;
-    background: #7a9b6d;
+    width: 360px;
+    height: 2px;
+    background: var(--connector-color);
 }
 
 .sibling-bridge::before,
 .sibling-bridge::after {
     content: '';
     position: absolute;
-    width: 3px;
-    height: 25px;
-    background: #7a9b6d;
-    top: 0;
+    width: 2px;
+    height: 24px;
+    background: var(--connector-color);
+    bottom: 0;
 }
 
 .sibling-bridge::before {
@@ -268,101 +476,186 @@ body {
     right: 0;
 }
 
-/* Legend */
+/* ============================================
+   Legend
+   ============================================ */
 .legend {
-    margin-top: 60px;
-    padding: 25px 30px;
-    background: white;
-    border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(139, 109, 76, 0.1);
-    max-width: 500px;
-    margin-left: auto;
-    margin-right: auto;
+    max-width: 600px;
+    margin: var(--space-2xl) auto var(--space-xl);
+    padding: var(--space-lg);
+    background: var(--parchment-light);
+    border: 1px solid var(--parchment-shadow);
 }
 
 .legend-title {
-    font-size: 1rem;
+    font-family: var(--font-display);
+    font-size: 1.2rem;
     font-weight: 600;
-    color: #5d4e3c;
-    margin-bottom: 15px;
+    color: var(--ink-dark);
     text-align: center;
+    margin-bottom: var(--space-lg);
+    letter-spacing: 0.05em;
 }
 
-.legend-items {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+.legend-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-md);
 }
 
 .legend-item {
     display: flex;
     align-items: center;
-    gap: 15px;
-    font-size: 0.9rem;
-    color: #6b6055;
+    gap: var(--space-md);
 }
 
-.legend-line {
-    width: 40px;
-    height: 20px;
-    border-radius: 4px;
+.legend-swatch {
     flex-shrink: 0;
+    width: 40px;
+    height: 28px;
+    background: var(--parchment-light);
 }
 
-.legend-line.blood {
-    border: 3px solid #7a9b6d;
-    background: white;
+.legend-swatch.blood {
+    border: 2px solid var(--lineage-primary);
 }
 
-.legend-line.spouse-line {
-    border: 3px dashed #d4a574;
-    background: white;
+.legend-swatch.spouse-swatch {
+    border: 2px dashed var(--spouse-primary);
 }
 
-.legend-line.vertical {
-    width: 20px;
-    background: #7a9b6d;
-    margin-left: 10px;
-    margin-right: 10px;
+.legend-swatch.connector {
+    width: 2px;
+    height: 28px;
+    background: var(--connector-color);
+    margin: 0 19px;
 }
 
-/* Responsive adjustments */
+.legend-swatch.bond {
+    width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: var(--spouse-primary);
+    background: transparent;
+}
+
+.legend-swatch.bond::before {
+    content: '⚭';
+}
+
+.legend-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.legend-text strong {
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--ink-dark);
+}
+
+.legend-text span {
+    font-size: 0.8rem;
+    color: var(--ink-light);
+}
+
+/* ============================================
+   Footer
+   ============================================ */
+.footer {
+    text-align: center;
+    padding: var(--space-lg) 0;
+    border-top: 1px solid var(--parchment-shadow);
+}
+
+.footer p {
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    color: var(--ink-faded);
+    letter-spacing: 0.1em;
+}
+
+/* ============================================
+   Responsive Design
+   ============================================ */
 @media (max-width: 900px) {
     .family-group {
-        gap: 30px;
+        gap: 40px;
     }
 
     .sibling-bridge {
         width: 280px;
     }
+
+    .connector-horizontal {
+        width: 240px;
+    }
 }
 
 @media (max-width: 768px) {
-    .header h1 {
-        font-size: 1.8rem;
-    }
-
-    .person {
-        min-width: 110px;
-        padding: 15px 10px;
-    }
-
-    .person-photo {
-        width: 55px;
-        height: 55px;
-        font-size: 1.1rem;
-    }
-
-    .person-name {
-        font-size: 0.85rem;
+    .container {
+        padding: var(--space-lg) var(--space-md);
     }
 
     .family-group {
         flex-direction: column;
-        gap: 40px;
+        align-items: center;
+        gap: var(--space-xl);
     }
 
     .sibling-bridge {
         display: none;
     }
+
+    .legend-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .person {
+        width: 140px;
+        padding: var(--space-md) var(--space-sm) var(--space-sm);
+    }
+
+    .person-photo {
+        width: 60px;
+        height: 60px;
+    }
+
+    .initials {
+        font-size: 1.2rem;
+    }
+
+    .person-name {
+        font-size: 0.9rem;
+    }
+}
+
+/* ============================================
+   Animations
+   ============================================ */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.generation {
+    animation: fadeIn 0.6s ease-out both;
+}
+
+.generation[data-gen="1"] { animation-delay: 0.1s; }
+.generation[data-gen="2"] { animation-delay: 0.3s; }
+.generation[data-gen="3"] { animation-delay: 0.5s; }
+
+.person {
+    animation: fadeIn 0.4s ease-out both;
 }

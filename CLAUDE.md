@@ -101,6 +101,12 @@
 - Click on person to see details
 - Clear visual hierarchy (generations on horizontal lines)
 
+**Design Tool:**
+Always use the `frontend-design` skill (plugin:frontend-design@claude-plugins-official) when creating or updating UI components. This ensures:
+- Distinctive, production-grade design quality
+- Avoids generic AI aesthetics
+- Professional polish and thoughtful details
+
 ---
 
 ## Section 6: Technical Decisions Log

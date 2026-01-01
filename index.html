@@ -3,160 +3,317 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Family Tree</title>
+    <title>The Johnson Family Tree</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Crimson+Pro:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <div class="page-texture"></div>
+
     <div class="container">
         <header class="header">
+            <div class="header-ornament">✦</div>
             <h1>The Johnson Family</h1>
-            <p class="subtitle">Our family story, connected through generations</p>
+            <p class="subtitle">A record of our lineage, preserved through generations</p>
+            <div class="header-line"></div>
         </header>
 
         <div class="tree-container">
             <div class="tree">
 
                 <!-- Generation 1: Grandparents -->
-                <div class="generation">
-                    <div class="generation-label">Generation 1 — Grandparents</div>
+                <section class="generation" data-gen="1">
+                    <div class="generation-header">
+                        <span class="gen-numeral">I</span>
+                        <span class="gen-title">The Grandparents</span>
+                    </div>
+
                     <div class="family-group">
                         <div class="family-unit">
                             <div class="couple">
-                                <div class="person">
-                                    <div class="person-photo">RJ</div>
-                                    <div class="person-name">Robert Johnson</div>
-                                    <div class="person-years">1945 - 2020</div>
+                                <article class="person blood-relative" tabindex="0">
+                                    <div class="person-frame">
+                                        <div class="person-photo">
+                                            <span class="initials">RJ</span>
+                                        </div>
+                                    </div>
+                                    <div class="person-details">
+                                        <h3 class="person-name">Robert Johnson</h3>
+                                        <p class="person-life">1945 — 2020</p>
+                                    </div>
+                                    <div class="card-corner tl"></div>
+                                    <div class="card-corner tr"></div>
+                                    <div class="card-corner bl"></div>
+                                    <div class="card-corner br"></div>
+                                </article>
+
+                                <div class="marriage-bond">
+                                    <span class="bond-symbol">⚭</span>
                                 </div>
-                                <div class="spouse-connector"></div>
-                                <div class="person spouse">
-                                    <div class="person-photo">EJ</div>
-                                    <div class="person-name">Eleanor Johnson</div>
-                                    <div class="person-years">1948 - Present</div>
-                                    <div class="badge">married in</div>
-                                </div>
+
+                                <article class="person spouse" tabindex="0">
+                                    <div class="person-frame">
+                                        <div class="person-photo">
+                                            <span class="initials">EJ</span>
+                                        </div>
+                                    </div>
+                                    <div class="person-details">
+                                        <h3 class="person-name">Eleanor Johnson</h3>
+                                        <p class="person-life">1948 — Present</p>
+                                        <span class="relation-tag">married in</span>
+                                    </div>
+                                    <div class="card-corner tl"></div>
+                                    <div class="card-corner tr"></div>
+                                    <div class="card-corner bl"></div>
+                                    <div class="card-corner br"></div>
+                                </article>
                             </div>
-                            <div class="parent-connector"></div>
+
+                            <div class="lineage-connector">
+                                <div class="connector-vertical"></div>
+                                <div class="connector-horizontal"></div>
+                                <div class="connector-drop left"></div>
+                                <div class="connector-drop right"></div>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </section>
 
                 <!-- Generation 2: Parents -->
-                <div class="generation">
-                    <div class="generation-label">Generation 2 — Parents</div>
+                <section class="generation" data-gen="2">
+                    <div class="generation-header">
+                        <span class="gen-numeral">II</span>
+                        <span class="gen-title">The Parents</span>
+                    </div>
+
                     <div class="family-group">
                         <!-- Michael's family -->
                         <div class="family-unit">
-                            <div class="siblings-connector two-children"></div>
                             <div class="couple">
-                                <div class="person blood-relative">
-                                    <div class="person-photo">MJ</div>
-                                    <div class="person-name">Michael Johnson</div>
-                                    <div class="person-years">1970 - Present</div>
+                                <article class="person blood-relative" tabindex="0">
+                                    <div class="person-frame">
+                                        <div class="person-photo">
+                                            <span class="initials">MJ</span>
+                                        </div>
+                                    </div>
+                                    <div class="person-details">
+                                        <h3 class="person-name">Michael Johnson</h3>
+                                        <p class="person-life">1970 — Present</p>
+                                    </div>
+                                    <div class="card-corner tl"></div>
+                                    <div class="card-corner tr"></div>
+                                    <div class="card-corner bl"></div>
+                                    <div class="card-corner br"></div>
+                                </article>
+
+                                <div class="marriage-bond">
+                                    <span class="bond-symbol">⚭</span>
                                 </div>
-                                <div class="spouse-connector"></div>
-                                <div class="person spouse">
-                                    <div class="person-photo">SJ</div>
-                                    <div class="person-name">Sarah Johnson</div>
-                                    <div class="person-years">1972 - Present</div>
-                                    <div class="badge">married in</div>
-                                </div>
+
+                                <article class="person spouse" tabindex="0">
+                                    <div class="person-frame">
+                                        <div class="person-photo">
+                                            <span class="initials">SJ</span>
+                                        </div>
+                                    </div>
+                                    <div class="person-details">
+                                        <h3 class="person-name">Sarah Johnson</h3>
+                                        <p class="person-life">1972 — Present</p>
+                                        <span class="relation-tag">married in</span>
+                                    </div>
+                                    <div class="card-corner tl"></div>
+                                    <div class="card-corner tr"></div>
+                                    <div class="card-corner bl"></div>
+                                    <div class="card-corner br"></div>
+                                </article>
                             </div>
-                            <div class="parent-connector"></div>
+
+                            <div class="lineage-connector children-two">
+                                <div class="connector-vertical"></div>
+                                <div class="connector-horizontal"></div>
+                                <div class="connector-drop left"></div>
+                                <div class="connector-drop right"></div>
+                            </div>
                         </div>
 
                         <!-- Jennifer's family -->
                         <div class="family-unit">
-                            <div class="siblings-connector two-children sibling-right"></div>
                             <div class="couple">
-                                <div class="person blood-relative">
-                                    <div class="person-photo">JJ</div>
-                                    <div class="person-name">Jennifer Davis</div>
-                                    <div class="person-years">1973 - Present</div>
-                                    <div class="badge maiden">née Johnson</div>
+                                <article class="person blood-relative" tabindex="0">
+                                    <div class="person-frame">
+                                        <div class="person-photo">
+                                            <span class="initials">JD</span>
+                                        </div>
+                                    </div>
+                                    <div class="person-details">
+                                        <h3 class="person-name">Jennifer Davis</h3>
+                                        <p class="person-life">1973 — Present</p>
+                                        <span class="relation-tag maiden">née Johnson</span>
+                                    </div>
+                                    <div class="card-corner tl"></div>
+                                    <div class="card-corner tr"></div>
+                                    <div class="card-corner bl"></div>
+                                    <div class="card-corner br"></div>
+                                </article>
+
+                                <div class="marriage-bond">
+                                    <span class="bond-symbol">⚭</span>
                                 </div>
-                                <div class="spouse-connector"></div>
-                                <div class="person spouse">
-                                    <div class="person-photo">TD</div>
-                                    <div class="person-name">Thomas Davis</div>
-                                    <div class="person-years">1971 - Present</div>
-                                    <div class="badge">married in</div>
-                                </div>
+
+                                <article class="person spouse" tabindex="0">
+                                    <div class="person-frame">
+                                        <div class="person-photo">
+                                            <span class="initials">TD</span>
+                                        </div>
+                                    </div>
+                                    <div class="person-details">
+                                        <h3 class="person-name">Thomas Davis</h3>
+                                        <p class="person-life">1971 — Present</p>
+                                        <span class="relation-tag">married in</span>
+                                    </div>
+                                    <div class="card-corner tl"></div>
+                                    <div class="card-corner tr"></div>
+                                    <div class="card-corner bl"></div>
+                                    <div class="card-corner br"></div>
+                                </article>
                             </div>
-                            <div class="parent-connector"></div>
+
+                            <div class="lineage-connector children-two">
+                                <div class="connector-vertical"></div>
+                                <div class="connector-horizontal"></div>
+                                <div class="connector-drop left"></div>
+                                <div class="connector-drop right"></div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Sibling connection line between Michael and Jennifer -->
-                    <div class="sibling-bridge"></div>
-                </div>
+                    <!-- Sibling connection -->
+                    <div class="sibling-bridge" aria-hidden="true"></div>
+                </section>
 
                 <!-- Generation 3: Children -->
-                <div class="generation">
-                    <div class="generation-label">Generation 3 — Children</div>
+                <section class="generation" data-gen="3">
+                    <div class="generation-header">
+                        <span class="gen-numeral">III</span>
+                        <span class="gen-title">The Children</span>
+                    </div>
+
                     <div class="family-group">
                         <!-- Michael & Sarah's children -->
-                        <div class="children-group">
-                            <div class="siblings-connector two-children"></div>
-                            <div class="children">
-                                <div class="person blood-relative">
-                                    <div class="child-connector"></div>
-                                    <div class="person-photo">EJ</div>
-                                    <div class="person-name">Emma Johnson</div>
-                                    <div class="person-years">1995 - Present</div>
+                        <div class="children-cluster">
+                            <article class="person blood-relative" tabindex="0">
+                                <div class="person-frame">
+                                    <div class="person-photo">
+                                        <span class="initials">EJ</span>
+                                    </div>
                                 </div>
-                                <div class="person blood-relative">
-                                    <div class="child-connector"></div>
-                                    <div class="person-photo">LJ</div>
-                                    <div class="person-name">Liam Johnson</div>
-                                    <div class="person-years">1998 - Present</div>
+                                <div class="person-details">
+                                    <h3 class="person-name">Emma Johnson</h3>
+                                    <p class="person-life">1995 — Present</p>
                                 </div>
-                            </div>
-                        </div>
+                                <div class="card-corner tl"></div>
+                                <div class="card-corner tr"></div>
+                                <div class="card-corner bl"></div>
+                                <div class="card-corner br"></div>
+                            </article>
 
-                        <div class="family-gap"></div>
+                            <article class="person blood-relative" tabindex="0">
+                                <div class="person-frame">
+                                    <div class="person-photo">
+                                        <span class="initials">LJ</span>
+                                    </div>
+                                </div>
+                                <div class="person-details">
+                                    <h3 class="person-name">Liam Johnson</h3>
+                                    <p class="person-life">1998 — Present</p>
+                                </div>
+                                <div class="card-corner tl"></div>
+                                <div class="card-corner tr"></div>
+                                <div class="card-corner bl"></div>
+                                <div class="card-corner br"></div>
+                            </article>
+                        </div>
 
                         <!-- Jennifer & Thomas's children -->
-                        <div class="children-group">
-                            <div class="siblings-connector two-children"></div>
-                            <div class="children">
-                                <div class="person blood-relative">
-                                    <div class="child-connector"></div>
-                                    <div class="person-photo">OD</div>
-                                    <div class="person-name">Olivia Davis</div>
-                                    <div class="person-years">1999 - Present</div>
+                        <div class="children-cluster">
+                            <article class="person blood-relative" tabindex="0">
+                                <div class="person-frame">
+                                    <div class="person-photo">
+                                        <span class="initials">OD</span>
+                                    </div>
                                 </div>
-                                <div class="person blood-relative">
-                                    <div class="child-connector"></div>
-                                    <div class="person-photo">ND</div>
-                                    <div class="person-name">Noah Davis</div>
-                                    <div class="person-years">2002 - Present</div>
+                                <div class="person-details">
+                                    <h3 class="person-name">Olivia Davis</h3>
+                                    <p class="person-life">1999 — Present</p>
                                 </div>
-                            </div>
+                                <div class="card-corner tl"></div>
+                                <div class="card-corner tr"></div>
+                                <div class="card-corner bl"></div>
+                                <div class="card-corner br"></div>
+                            </article>
+
+                            <article class="person blood-relative" tabindex="0">
+                                <div class="person-frame">
+                                    <div class="person-photo">
+                                        <span class="initials">ND</span>
+                                    </div>
+                                </div>
+                                <div class="person-details">
+                                    <h3 class="person-name">Noah Davis</h3>
+                                    <p class="person-life">2002 — Present</p>
+                                </div>
+                                <div class="card-corner tl"></div>
+                                <div class="card-corner tr"></div>
+                                <div class="card-corner bl"></div>
+                                <div class="card-corner br"></div>
+                            </article>
                         </div>
                     </div>
-                </div>
+                </section>
 
             </div>
         </div>
 
         <!-- Legend -->
-        <div class="legend">
-            <div class="legend-title">How to read this tree</div>
-            <div class="legend-items">
+        <aside class="legend">
+            <h2 class="legend-title">Reading This Tree</h2>
+            <div class="legend-grid">
                 <div class="legend-item">
-                    <div class="legend-line blood"></div>
-                    <span>Blood relative (Johnson family line)</span>
+                    <div class="legend-swatch blood"></div>
+                    <div class="legend-text">
+                        <strong>Blood Relative</strong>
+                        <span>Born into the Johnson line</span>
+                    </div>
                 </div>
                 <div class="legend-item">
-                    <div class="legend-line spouse-line"></div>
-                    <span>Married into family</span>
+                    <div class="legend-swatch spouse-swatch"></div>
+                    <div class="legend-text">
+                        <strong>Spouse</strong>
+                        <span>Joined through marriage</span>
+                    </div>
                 </div>
                 <div class="legend-item">
-                    <div class="legend-line vertical"></div>
-                    <span>Parent → Child connection</span>
+                    <div class="legend-swatch connector"></div>
+                    <div class="legend-text">
+                        <strong>Lineage Lines</strong>
+                        <span>Parent to child connections</span>
+                    </div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-swatch bond"></div>
+                    <div class="legend-text">
+                        <strong>Marriage Bond</strong>
+                        <span>Indicates a married couple</span>
+                    </div>
                 </div>
             </div>
-        </div>
+        </aside>
+
+        <footer class="footer">
+            <p>Est. 1945 · Three Generations Strong</p>
+        </footer>
     </div>
 </body>
 </html>
