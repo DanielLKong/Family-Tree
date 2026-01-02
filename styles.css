@@ -206,7 +206,7 @@ body {
 
 /* Longer connector for people without spouse (to align children with cousins) */
 .family-branch.no-spouse > .branch-connector {
-    height: 93px; /* 40px base + 53px to compensate for missing spouse section */
+    height: 93.5px; /* 40px base + 53.5px to compensate for missing spouse section */
 }
 
 /* Old branch structure (keeping for backward compatibility) */
