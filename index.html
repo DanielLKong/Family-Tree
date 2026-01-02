@@ -17,165 +17,8 @@
             <p class="header-meta">Est. 1945 · Three Generations</p>
         </header>
 
-        <main class="tree">
-            <!-- Generation 1 -->
-            <section class="generation" data-gen="1">
-                <div class="gen-label">Generation I</div>
-
-                <div class="gen-content">
-                    <article class="person-card" tabindex="0">
-                        <div class="card-main">
-                            <div class="avatar">
-                                <span>RJ</span>
-                            </div>
-                            <div class="info">
-                                <h2 class="name">Robert Johnson</h2>
-                            </div>
-                        </div>
-                        <div class="spouse-inline">
-                            <span class="spouse-label">Spouse</span>
-                            <span class="spouse-name">Eleanor Johnson</span>
-                        </div>
-                    </article>
-                </div>
-
-                <div class="connector-down">
-                    <div class="line-v"></div>
-                    <div class="line-h"></div>
-                </div>
-            </section>
-
-            <!-- Generation 2 -->
-            <section class="generation" data-gen="2">
-                <div class="gen-label">Generation II</div>
-
-                <div class="gen-content">
-                    <div class="branch">
-                        <div class="connector-up"></div>
-                        <article class="person-card" tabindex="0">
-                            <div class="card-main">
-                                <div class="avatar">
-                                    <span>MJ</span>
-                                </div>
-                                <div class="info">
-                                    <h2 class="name">Michael Johnson</h2>
-                                </div>
-                            </div>
-                            <div class="spouse-inline">
-                                <span class="spouse-label">Spouse</span>
-                                <span class="spouse-name">Sarah Johnson</span>
-                            </div>
-                        </article>
-                        <div class="connector-down">
-                            <div class="line-v"></div>
-                            <div class="line-h short"></div>
-                        </div>
-                    </div>
-
-                    <div class="branch">
-                        <div class="connector-up"></div>
-                        <article class="person-card" tabindex="0">
-                            <div class="card-main">
-                                <div class="avatar">
-                                    <span>DJ</span>
-                                </div>
-                                <div class="info">
-                                    <h2 class="name">David Johnson</h2>
-                                </div>
-                            </div>
-                        </article>
-                    </div>
-
-                    <div class="branch">
-                        <div class="connector-up"></div>
-                        <article class="person-card" tabindex="0">
-                            <div class="card-main">
-                                <div class="avatar">
-                                    <span>JD</span>
-                                </div>
-                                <div class="info">
-                                    <h2 class="name">Jennifer Davis</h2>
-                                    <span class="maiden">née Johnson</span>
-                                </div>
-                            </div>
-                            <div class="spouse-inline">
-                                <span class="spouse-label">Spouse</span>
-                                <span class="spouse-name">Thomas Davis</span>
-                            </div>
-                        </article>
-                        <div class="connector-down">
-                            <div class="line-v"></div>
-                            <div class="line-h short"></div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Generation 3 -->
-            <section class="generation" data-gen="3">
-                <div class="gen-label">Generation III</div>
-
-                <div class="gen-content">
-                    <div class="children-group">
-                        <div class="child-branch">
-                            <div class="connector-up"></div>
-                            <article class="person-card" tabindex="0">
-                                <div class="card-main">
-                                    <div class="avatar">
-                                        <span>EJ</span>
-                                    </div>
-                                    <div class="info">
-                                        <h2 class="name">Emma Johnson</h2>
-                                    </div>
-                                </div>
-                            </article>
-                        </div>
-                        <div class="child-branch">
-                            <div class="connector-up"></div>
-                            <article class="person-card" tabindex="0">
-                                <div class="card-main">
-                                    <div class="avatar">
-                                        <span>LJ</span>
-                                    </div>
-                                    <div class="info">
-                                        <h2 class="name">Liam Johnson</h2>
-                                    </div>
-                                </div>
-                            </article>
-                        </div>
-                    </div>
-
-                    <div class="children-group">
-                        <div class="child-branch">
-                            <div class="connector-up"></div>
-                            <article class="person-card" tabindex="0">
-                                <div class="card-main">
-                                    <div class="avatar">
-                                        <span>OD</span>
-                                    </div>
-                                    <div class="info">
-                                        <h2 class="name">Olivia Davis</h2>
-                                    </div>
-                                </div>
-                            </article>
-                        </div>
-                        <div class="child-branch">
-                            <div class="connector-up"></div>
-                            <article class="person-card" tabindex="0">
-                                <div class="card-main">
-                                    <div class="avatar">
-                                        <span>ND</span>
-                                    </div>
-                                    <div class="info">
-                                        <h2 class="name">Noah Davis</h2>
-                                    </div>
-                                </div>
-                            </article>
-                        </div>
-                    </div>
-                </div>
-            </section>
-        </main>
+        <!-- Tree renders here dynamically from data.js -->
+        <main class="tree"></main>
 
         <aside class="legend">
             <div class="legend-item">
@@ -192,5 +35,9 @@
             </div>
         </aside>
     </div>
+
+    <!-- Load data first, then app logic -->
+    <script src="data.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
