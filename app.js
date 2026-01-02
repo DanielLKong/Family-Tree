@@ -26,13 +26,13 @@ function getSpouse(personId) {
 }
 
 /**
- * Get all children of a person
+ * Get all children of a person, sorted by birth order
  * (anyone whose parentIds includes this person)
  */
 function getChildren(personId) {
-  return Object.values(familyData.people).filter(person =>
-    person.parentIds.includes(personId)
-  );
+  return Object.values(familyData.people)
+    .filter(person => person.parentIds.includes(personId))
+    .sort((a, b) => (a.birthOrder || 999) - (b.birthOrder || 999));
 }
 
 /**
@@ -409,6 +409,8 @@ function showAddChildForm(parentId, card) {
     if (name) {
       addChild(parentId, name);
       closeAllPopups();
+      // Show reorder panel after adding
+      showReorderPanel(parentId);
     }
   });
 
@@ -456,6 +458,136 @@ function closeAllPopups() {
   document.querySelectorAll('.card-dropdown, .add-form').forEach(el => el.remove());
 }
 
+/**
+ * Show the reorder panel for children
+ */
+function showReorderPanel(parentId) {
+  // Close any existing panel
+  closeReorderPanel();
+
+  const children = getChildren(parentId);
+  if (children.length < 2) return; // No need to reorder 0 or 1 child
+
+  const parent = getPersonById(parentId);
+
+  // Create overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'reorder-overlay';
+  overlay.addEventListener('click', closeReorderPanel);
+  document.body.appendChild(overlay);
+
+  // Create panel
+  const panel = document.createElement('div');
+  panel.className = 'reorder-panel';
+
+  const title = parent.name.split(' ')[0] + "'s Children";
+
+  panel.innerHTML = `
+    <h3>${title}</h3>
+    <p>Drag to reorder by birth (oldest first)</p>
+    <ul class="reorder-list"></ul>
+    <button class="done-btn" onclick="closeReorderPanel()">Done</button>
+  `;
+
+  const list = panel.querySelector('.reorder-list');
+
+  // Add children to list
+  children.forEach((child, index) => {
+    const item = document.createElement('li');
+    item.className = 'reorder-item';
+    item.draggable = true;
+    item.dataset.childId = child.id;
+    item.innerHTML = `
+      <span class="drag-handle">☰</span>
+      <span class="child-name">${child.name}</span>
+      <span class="order-num">${index + 1}</span>
+    `;
+
+    // Drag events
+    item.addEventListener('dragstart', handleDragStart);
+    item.addEventListener('dragend', handleDragEnd);
+    item.addEventListener('dragover', handleDragOver);
+    item.addEventListener('drop', handleDrop);
+
+    list.appendChild(item);
+  });
+
+  document.body.appendChild(panel);
+}
+
+/**
+ * Close the reorder panel
+ */
+function closeReorderPanel() {
+  document.querySelectorAll('.reorder-panel, .reorder-overlay').forEach(el => el.remove());
+}
+
+// Drag and drop state
+let draggedItem = null;
+
+function handleDragStart(e) {
+  draggedItem = e.target.closest('.reorder-item');
+  draggedItem.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function handleDragEnd(e) {
+  e.target.closest('.reorder-item').classList.remove('dragging');
+  document.querySelectorAll('.reorder-item').forEach(item => {
+    item.classList.remove('drag-over');
+  });
+
+  // Update birth orders based on new positions
+  const list = document.querySelector('.reorder-list');
+  if (list) {
+    const items = list.querySelectorAll('.reorder-item');
+    items.forEach((item, index) => {
+      const childId = item.dataset.childId;
+      const child = getPersonById(childId);
+      if (child) {
+        child.birthOrder = index + 1;
+      }
+      // Update the displayed order number
+      item.querySelector('.order-num').textContent = index + 1;
+    });
+
+    // Re-render the tree with new order
+    renderTree();
+  }
+
+  draggedItem = null;
+}
+
+function handleDragOver(e) {
+  e.preventDefault();
+  const item = e.target.closest('.reorder-item');
+  if (item && item !== draggedItem) {
+    item.classList.add('drag-over');
+  }
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  const dropTarget = e.target.closest('.reorder-item');
+
+  if (dropTarget && draggedItem && dropTarget !== draggedItem) {
+    const list = dropTarget.parentNode;
+    const allItems = [...list.querySelectorAll('.reorder-item')];
+    const draggedIndex = allItems.indexOf(draggedItem);
+    const dropIndex = allItems.indexOf(dropTarget);
+
+    if (draggedIndex < dropIndex) {
+      dropTarget.parentNode.insertBefore(draggedItem, dropTarget.nextSibling);
+    } else {
+      dropTarget.parentNode.insertBefore(draggedItem, dropTarget);
+    }
+  }
+
+  document.querySelectorAll('.reorder-item').forEach(item => {
+    item.classList.remove('drag-over');
+  });
+}
+
 // ============================================
 // DATA MODIFICATION
 // ============================================
@@ -477,14 +609,15 @@ function generateId(name) {
 /**
  * Add a new person to the family
  */
-function addPerson(name, parentIds = [], spouseId = null) {
+function addPerson(name, parentIds = [], spouseId = null, birthOrder = null) {
   const id = generateId(name);
 
   familyData.people[id] = {
     id,
     name,
     parentIds,
-    spouseId
+    spouseId,
+    birthOrder
   };
 
   // If adding as spouse, update the other person too
@@ -511,7 +644,12 @@ function addChild(parentId, childName) {
     parentIds.push(parent.spouseId);
   }
 
-  return addPerson(childName, parentIds);
+  // Get existing children to determine birth order
+  const existingChildren = getChildren(parentId);
+  const maxOrder = existingChildren.reduce((max, child) =>
+    Math.max(max, child.birthOrder || 0), 0);
+
+  return addPerson(childName, parentIds, null, maxOrder + 1);
 }
 
 /**

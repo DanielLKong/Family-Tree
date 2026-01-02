@@ -560,3 +560,112 @@ body {
 .add-form button[type="button"]:hover {
     background: #f0f0f0;
 }
+
+/* ==========================================
+   Reorder Children List
+   ========================================== */
+.reorder-panel {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: var(--space-lg);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    z-index: 200;
+    min-width: 280px;
+    max-width: 360px;
+}
+
+.reorder-panel h3 {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: var(--space-md);
+    color: var(--text-primary);
+}
+
+.reorder-panel p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: var(--space-md);
+}
+
+.reorder-list {
+    list-style: none;
+    margin-bottom: var(--space-md);
+}
+
+.reorder-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    margin-bottom: var(--space-xs);
+    cursor: grab;
+    transition: all 0.15s ease;
+}
+
+.reorder-item:hover {
+    background: var(--card-hover);
+}
+
+.reorder-item.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+}
+
+.reorder-item.drag-over {
+    border-color: var(--text-secondary);
+    transform: translateY(2px);
+}
+
+.reorder-item .drag-handle {
+    color: var(--text-tertiary);
+    font-size: 14px;
+}
+
+.reorder-item .child-name {
+    flex: 1;
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+.reorder-item .order-num {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    min-width: 20px;
+    text-align: right;
+}
+
+.reorder-panel button.done-btn {
+    width: 100%;
+    padding: var(--space-sm) var(--space-md);
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.reorder-panel button.done-btn:hover {
+    background: var(--card-hover);
+}
+
+.reorder-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 199;
+}
