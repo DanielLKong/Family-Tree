@@ -156,7 +156,6 @@ function renderPerson(personId, options = {}) {
 
   const spouse = getSpouse(personId);
   const initials = getInitials(person.name);
-  const showAddChild = options.showAddChild !== false && spouse; // Show if has spouse
 
   // Build spouse HTML if exists
   let spouseHtml = '';
@@ -175,30 +174,23 @@ function renderPerson(personId, options = {}) {
     maidenHtml = `<span class="maiden">née ${person.maidenName}</span>`;
   }
 
-  // Build add child button if applicable
-  let addChildHtml = '';
-  if (showAddChild) {
-    addChildHtml = `
-      <button class="add-child-btn" data-parent-id="${person.id}" title="Add child">+</button>
-    `;
-  }
+  // Menu button - always show
+  const menuBtn = `<button class="card-menu-btn" data-person-id="${person.id}" title="Options">+</button>`;
 
   return `
-    <div class="person-wrapper">
-      <article class="person-card" tabindex="0" data-person-id="${person.id}">
-        <div class="card-main">
-          <div class="avatar">
-            <span>${initials}</span>
-          </div>
-          <div class="info">
-            <h2 class="name">${person.name}</h2>
-            ${maidenHtml}
-          </div>
+    <article class="person-card" tabindex="0" data-person-id="${person.id}">
+      ${menuBtn}
+      <div class="card-main">
+        <div class="avatar">
+          <span>${initials}</span>
         </div>
-        ${spouseHtml}
-      </article>
-      ${addChildHtml}
-    </div>
+        <div class="info">
+          <h2 class="name">${person.name}</h2>
+          ${maidenHtml}
+        </div>
+      </div>
+      ${spouseHtml}
+    </article>
   `;
 }
 
@@ -334,9 +326,9 @@ function renderTree() {
     card.addEventListener('click', handleCardClick);
   });
 
-  // Add click handlers for add-child buttons
-  document.querySelectorAll('.add-child-btn').forEach(btn => {
-    btn.addEventListener('click', handleAddChildClick);
+  // Add click handlers for menu buttons
+  document.querySelectorAll('.card-menu-btn').forEach(btn => {
+    btn.addEventListener('click', handleMenuClick);
   });
 }
 
@@ -355,24 +347,60 @@ function handleCardClick(event) {
 }
 
 /**
- * Handle click on add child button
+ * Handle click on menu button - show dropdown
  */
-function handleAddChildClick(event) {
+function handleMenuClick(event) {
   event.stopPropagation();
   const button = event.currentTarget;
-  const parentId = button.dataset.parentId;
-  const wrapper = button.closest('.person-wrapper');
+  const personId = button.dataset.personId;
+  const card = button.closest('.person-card');
+  const person = getPersonById(personId);
+  const spouse = getSpouse(personId);
 
-  // Close any existing forms
-  closeAddChildForm();
+  // Close any existing dropdowns/forms
+  closeAllPopups();
 
-  // Create and show form
+  // Create dropdown menu
+  const dropdown = document.createElement('div');
+  dropdown.className = 'card-dropdown';
+
+  // Add Child option (only if has spouse)
+  if (spouse) {
+    const addChildBtn = document.createElement('button');
+    addChildBtn.className = 'card-dropdown-item';
+    addChildBtn.textContent = 'Add Child';
+    addChildBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      showAddChildForm(personId, card);
+    });
+    dropdown.appendChild(addChildBtn);
+  }
+
+  // Add/Edit Spouse option
+  const spouseBtn = document.createElement('button');
+  spouseBtn.className = 'card-dropdown-item';
+  spouseBtn.textContent = spouse ? 'Edit Spouse' : 'Add Spouse';
+  spouseBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    showSpouseForm(personId, card, spouse);
+  });
+  dropdown.appendChild(spouseBtn);
+
+  card.appendChild(dropdown);
+}
+
+/**
+ * Show form to add a child
+ */
+function showAddChildForm(parentId, card) {
+  closeAllPopups();
+
   const form = document.createElement('form');
-  form.className = 'add-child-form';
+  form.className = 'add-form';
   form.innerHTML = `
     <input type="text" name="childName" placeholder="Child's full name" autofocus>
-    <div class="add-child-form-buttons">
-      <button type="button" onclick="closeAddChildForm()">Cancel</button>
+    <div class="add-form-buttons">
+      <button type="button" onclick="closeAllPopups()">Cancel</button>
       <button type="submit">Add</button>
     </div>
   `;
@@ -382,22 +410,52 @@ function handleAddChildClick(event) {
     const name = form.querySelector('input[name="childName"]').value.trim();
     if (name) {
       addChild(parentId, name);
-      closeAddChildForm();
+      closeAllPopups();
     }
   });
 
-  wrapper.appendChild(form);
+  card.appendChild(form);
   form.querySelector('input').focus();
 }
 
 /**
- * Close any open add child form
+ * Show form to add or edit spouse
  */
-function closeAddChildForm() {
-  const existingForm = document.querySelector('.add-child-form');
-  if (existingForm) {
-    existingForm.remove();
-  }
+function showSpouseForm(personId, card, existingSpouse) {
+  closeAllPopups();
+
+  const form = document.createElement('form');
+  form.className = 'add-form';
+  form.innerHTML = `
+    <input type="text" name="spouseName" placeholder="Spouse's full name" value="${existingSpouse ? existingSpouse.name : ''}" autofocus>
+    <div class="add-form-buttons">
+      <button type="button" onclick="closeAllPopups()">Cancel</button>
+      <button type="submit">${existingSpouse ? 'Update' : 'Add'}</button>
+    </div>
+  `;
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = form.querySelector('input[name="spouseName"]').value.trim();
+    if (name) {
+      if (existingSpouse) {
+        updatePerson(existingSpouse.id, { name });
+      } else {
+        addSpouse(personId, name);
+      }
+      closeAllPopups();
+    }
+  });
+
+  card.appendChild(form);
+  form.querySelector('input').focus();
+}
+
+/**
+ * Close any open dropdowns or forms
+ */
+function closeAllPopups() {
+  document.querySelectorAll('.card-dropdown, .add-form').forEach(el => el.remove());
 }
 
 // ============================================
@@ -515,10 +573,12 @@ function removePerson(personId) {
 function init() {
   renderTree();
 
-  // Close form when clicking outside
+  // Close popups when clicking outside
   document.addEventListener('click', (e) => {
-    if (!e.target.closest('.add-child-form') && !e.target.closest('.add-child-btn')) {
-      closeAddChildForm();
+    if (!e.target.closest('.card-dropdown') &&
+        !e.target.closest('.add-form') &&
+        !e.target.closest('.card-menu-btn')) {
+      closeAllPopups();
     }
   });
 
