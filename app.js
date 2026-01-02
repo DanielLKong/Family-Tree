@@ -364,17 +364,15 @@ function handleMenuClick(event) {
   const dropdown = document.createElement('div');
   dropdown.className = 'card-dropdown';
 
-  // Add Child option (only if has spouse)
-  if (spouse) {
-    const addChildBtn = document.createElement('button');
-    addChildBtn.className = 'card-dropdown-item';
-    addChildBtn.textContent = 'Add Child';
-    addChildBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      showAddChildForm(personId, card);
-    });
-    dropdown.appendChild(addChildBtn);
-  }
+  // Add Child option - always available
+  const addChildBtn = document.createElement('button');
+  addChildBtn.className = 'card-dropdown-item';
+  addChildBtn.textContent = 'Add Child';
+  addChildBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    showAddChildForm(personId, card);
+  });
+  dropdown.appendChild(addChildBtn);
 
   // Add/Edit Spouse option
   const spouseBtn = document.createElement('button');
