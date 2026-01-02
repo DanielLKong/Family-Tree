@@ -312,6 +312,8 @@ function renderBranch(personId, isRoot = false) {
 
   const children = getChildren(personId);
   const hasChildren = children.length > 0;
+  const spouse = getSpouse(personId);
+  const noSpouseClass = !spouse ? 'no-spouse' : '';
 
   // Render children branches
   let childrenHtml = '';
@@ -324,7 +326,7 @@ function renderBranch(personId, isRoot = false) {
   }
 
   return `
-    <div class="family-branch ${isRoot ? 'root-branch' : ''}">
+    <div class="family-branch ${isRoot ? 'root-branch' : ''} ${noSpouseClass}">
       ${renderPerson(personId)}
       ${childrenHtml}
     </div>

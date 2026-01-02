@@ -204,6 +204,11 @@ body {
     margin-top: var(--space-md);
 }
 
+/* Longer connector for people without spouse (to align children with cousins) */
+.family-branch.no-spouse > .branch-connector {
+    height: 90px; /* 40px base + ~50px to compensate for missing spouse section */
+}
+
 /* Old branch structure (keeping for backward compatibility) */
 .branch {
     display: flex;
@@ -228,7 +233,6 @@ body {
 .person-card {
     position: relative;
     width: var(--card-width);
-    min-height: 120px; /* Consistent height whether or not spouse exists */
     background: var(--card-bg);
     border: 1px solid var(--card-border);
     padding: var(--card-padding);
