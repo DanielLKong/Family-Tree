@@ -159,6 +159,7 @@ body {
 .branch-children {
     display: flex;
     justify-content: center;
+    align-items: flex-start; /* Align all siblings at top */
     gap: var(--space-xl);
     position: relative;
 }
@@ -172,7 +173,6 @@ body {
     transform: translateX(-50%);
     height: 2px;
     background: var(--line);
-    /* Width calculated based on children */
 }
 
 /* Calculate horizontal line width based on number of children */
@@ -190,7 +190,18 @@ body {
     width: 2px;
     height: 40px;
     background: var(--line);
-    margin-bottom: var(--space-lg);
+    flex-shrink: 0;
+    margin-bottom: var(--space-md);
+}
+
+/* Ensure person cards in same row align */
+.branch-children > .family-branch > .person-card {
+    flex-shrink: 0;
+}
+
+/* Consistent spacing between connector and children */
+.branch-connector {
+    margin-top: var(--space-md);
 }
 
 /* Old branch structure (keeping for backward compatibility) */
