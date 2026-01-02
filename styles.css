@@ -142,8 +142,58 @@ body {
 }
 
 /* ==========================================
-   Branch Structure
+   Family Branch Structure (recursive)
    ========================================== */
+.family-branch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.branch-connector {
+    width: 2px;
+    height: 40px;
+    background: var(--line);
+}
+
+.branch-children {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-xl);
+    position: relative;
+}
+
+/* Horizontal line connecting siblings */
+.branch-children::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    height: 2px;
+    background: var(--line);
+    /* Width calculated based on children */
+}
+
+/* Calculate horizontal line width based on number of children */
+.branch-children:has(> .family-branch:nth-child(2))::before {
+    width: calc(100% - var(--card-width));
+}
+
+.branch-children:has(> .family-branch:nth-child(1):last-child)::before {
+    display: none;
+}
+
+/* Vertical lines from horizontal bar to each child */
+.branch-children > .family-branch::before {
+    content: '';
+    width: 2px;
+    height: 40px;
+    background: var(--line);
+    margin-bottom: var(--space-lg);
+}
+
+/* Old branch structure (keeping for backward compatibility) */
 .branch {
     display: flex;
     flex-direction: column;

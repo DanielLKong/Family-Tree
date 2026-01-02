@@ -304,10 +304,37 @@ function renderGeneration(personIds, genNumber, isLastGen) {
 }
 
 /**
+ * Render a family branch (person + their children recursively)
+ */
+function renderBranch(personId, isRoot = false) {
+  const person = getPersonById(personId);
+  if (!person) return '';
+
+  const children = getChildren(personId);
+  const hasChildren = children.length > 0;
+
+  // Render children branches
+  let childrenHtml = '';
+  if (hasChildren) {
+    const childBranches = children.map(child => renderBranch(child.id)).join('');
+    childrenHtml = `
+      <div class="branch-connector"></div>
+      <div class="branch-children">${childBranches}</div>
+    `;
+  }
+
+  return `
+    <div class="family-branch ${isRoot ? 'root-branch' : ''}">
+      ${renderPerson(personId)}
+      ${childrenHtml}
+    </div>
+  `;
+}
+
+/**
  * Render the entire tree
  */
 function renderTree() {
-  const generations = buildGenerations();
   const treeContainer = document.querySelector('.tree');
 
   if (!treeContainer) {
@@ -315,10 +342,8 @@ function renderTree() {
     return;
   }
 
-  const html = generations.map((genPersonIds, index) =>
-    renderGeneration(genPersonIds, index + 1, index === generations.length - 1)
-  ).join('');
-
+  // Render from root person
+  const html = renderBranch(familyData.rootPersonId, true);
   treeContainer.innerHTML = html;
 
   // Add click handlers for person cards
