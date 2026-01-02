@@ -156,6 +156,7 @@ function renderPerson(personId, options = {}) {
 
   const spouse = getSpouse(personId);
   const initials = getInitials(person.name);
+  const showAddChild = options.showAddChild !== false && spouse; // Show if has spouse
 
   // Build spouse HTML if exists
   let spouseHtml = '';
@@ -174,19 +175,30 @@ function renderPerson(personId, options = {}) {
     maidenHtml = `<span class="maiden">née ${person.maidenName}</span>`;
   }
 
+  // Build add child button if applicable
+  let addChildHtml = '';
+  if (showAddChild) {
+    addChildHtml = `
+      <button class="add-child-btn" data-parent-id="${person.id}" title="Add child">+</button>
+    `;
+  }
+
   return `
-    <article class="person-card" tabindex="0" data-person-id="${person.id}">
-      <div class="card-main">
-        <div class="avatar">
-          <span>${initials}</span>
+    <div class="person-wrapper">
+      <article class="person-card" tabindex="0" data-person-id="${person.id}">
+        <div class="card-main">
+          <div class="avatar">
+            <span>${initials}</span>
+          </div>
+          <div class="info">
+            <h2 class="name">${person.name}</h2>
+            ${maidenHtml}
+          </div>
         </div>
-        <div class="info">
-          <h2 class="name">${person.name}</h2>
-          ${maidenHtml}
-        </div>
-      </div>
-      ${spouseHtml}
-    </article>
+        ${spouseHtml}
+      </article>
+      ${addChildHtml}
+    </div>
   `;
 }
 
@@ -321,6 +333,11 @@ function renderTree() {
   document.querySelectorAll('.person-card').forEach(card => {
     card.addEventListener('click', handleCardClick);
   });
+
+  // Add click handlers for add-child buttons
+  document.querySelectorAll('.add-child-btn').forEach(btn => {
+    btn.addEventListener('click', handleAddChildClick);
+  });
 }
 
 /**
@@ -334,6 +351,52 @@ function handleCardClick(event) {
   if (person) {
     console.log('Clicked:', person.name);
     // TODO: Show profile modal
+  }
+}
+
+/**
+ * Handle click on add child button
+ */
+function handleAddChildClick(event) {
+  event.stopPropagation();
+  const button = event.currentTarget;
+  const parentId = button.dataset.parentId;
+  const wrapper = button.closest('.person-wrapper');
+
+  // Close any existing forms
+  closeAddChildForm();
+
+  // Create and show form
+  const form = document.createElement('form');
+  form.className = 'add-child-form';
+  form.innerHTML = `
+    <input type="text" name="childName" placeholder="Child's full name" autofocus>
+    <div class="add-child-form-buttons">
+      <button type="button" onclick="closeAddChildForm()">Cancel</button>
+      <button type="submit">Add</button>
+    </div>
+  `;
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = form.querySelector('input[name="childName"]').value.trim();
+    if (name) {
+      addChild(parentId, name);
+      closeAddChildForm();
+    }
+  });
+
+  wrapper.appendChild(form);
+  form.querySelector('input').focus();
+}
+
+/**
+ * Close any open add child form
+ */
+function closeAddChildForm() {
+  const existingForm = document.querySelector('.add-child-form');
+  if (existingForm) {
+    existingForm.remove();
   }
 }
 
@@ -451,6 +514,14 @@ function removePerson(personId) {
  */
 function init() {
   renderTree();
+
+  // Close form when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.add-child-form') && !e.target.closest('.add-child-btn')) {
+      closeAddChildForm();
+    }
+  });
+
   console.log('Family Tree initialized');
 }
 
