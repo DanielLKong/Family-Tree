@@ -174,8 +174,8 @@ function renderPerson(personId, options = {}) {
     maidenHtml = `<span class="maiden">née ${person.maidenName}</span>`;
   }
 
-  // Menu button - always show
-  const menuBtn = `<button class="card-menu-btn" data-person-id="${person.id}" title="Options">+</button>`;
+  // Menu button - three dots
+  const menuBtn = `<button class="card-menu-btn" data-person-id="${person.id}" title="Options">⋮</button>`;
 
   return `
     <article class="person-card" tabindex="0" data-person-id="${person.id}">
@@ -364,6 +364,16 @@ function handleMenuClick(event) {
   const dropdown = document.createElement('div');
   dropdown.className = 'card-dropdown';
 
+  // Edit option
+  const editBtn = document.createElement('button');
+  editBtn.className = 'card-dropdown-item';
+  editBtn.textContent = 'Edit';
+  editBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    showEditForm(personId, card);
+  });
+  dropdown.appendChild(editBtn);
+
   // Add Child option - always available
   const addChildBtn = document.createElement('button');
   addChildBtn.className = 'card-dropdown-item';
@@ -449,6 +459,39 @@ function showSpouseForm(personId, card, existingSpouse) {
 
   card.appendChild(form);
   form.querySelector('input').focus();
+}
+
+/**
+ * Show form to edit a person
+ */
+function showEditForm(personId, card) {
+  closeAllPopups();
+
+  const person = getPersonById(personId);
+  if (!person) return;
+
+  const form = document.createElement('form');
+  form.className = 'add-form';
+  form.innerHTML = `
+    <input type="text" name="personName" placeholder="Full name" value="${person.name}" autofocus>
+    <div class="add-form-buttons">
+      <button type="button" onclick="closeAllPopups()">Cancel</button>
+      <button type="submit">Save</button>
+    </div>
+  `;
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = form.querySelector('input[name="personName"]').value.trim();
+    if (name) {
+      updatePerson(personId, { name });
+      closeAllPopups();
+    }
+  });
+
+  card.appendChild(form);
+  form.querySelector('input').focus();
+  form.querySelector('input').select();
 }
 
 /**
