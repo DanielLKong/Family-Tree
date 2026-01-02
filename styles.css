@@ -228,6 +228,7 @@ body {
 .person-card {
     position: relative;
     width: var(--card-width);
+    min-height: 120px; /* Consistent height whether or not spouse exists */
     background: var(--card-bg);
     border: 1px solid var(--card-border);
     padding: var(--card-padding);
