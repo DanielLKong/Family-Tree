@@ -394,6 +394,16 @@ function handleMenuClick(event) {
   });
   dropdown.appendChild(spouseBtn);
 
+  // Delete option
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'card-dropdown-item delete-item';
+  deleteBtn.textContent = 'Delete';
+  deleteBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    showDeleteConfirm(personId, card);
+  });
+  dropdown.appendChild(deleteBtn);
+
   card.appendChild(dropdown);
 }
 
@@ -459,6 +469,64 @@ function showSpouseForm(personId, card, existingSpouse) {
 
   card.appendChild(form);
   form.querySelector('input').focus();
+}
+
+/**
+ * Get all descendants of a person (children, grandchildren, etc.)
+ */
+function getDescendants(personId) {
+  const descendants = [];
+  const children = getChildren(personId);
+
+  children.forEach(child => {
+    descendants.push(child);
+    descendants.push(...getDescendants(child.id));
+  });
+
+  return descendants;
+}
+
+/**
+ * Show delete confirmation dialog
+ */
+function showDeleteConfirm(personId, card) {
+  closeAllPopups();
+
+  const person = getPersonById(personId);
+  if (!person) return;
+
+  const descendants = getDescendants(personId);
+  const spouse = getSpouse(personId);
+
+  // Build warning message
+  let warningMsg = '';
+  if (descendants.length > 0) {
+    const names = descendants.map(d => d.name).join(', ');
+    warningMsg = `<p class="delete-warning">This will also delete their entire branch: ${names}</p>`;
+  }
+
+  const form = document.createElement('div');
+  form.className = 'add-form delete-confirm';
+  form.innerHTML = `
+    <p class="delete-title">Delete ${person.name}?</p>
+    ${warningMsg}
+    <div class="add-form-buttons">
+      <button type="button" class="cancel-btn" onclick="closeAllPopups()">Cancel</button>
+      <button type="button" class="confirm-delete-btn">Delete</button>
+    </div>
+  `;
+
+  form.querySelector('.confirm-delete-btn').addEventListener('click', () => {
+    // Delete all descendants first
+    descendants.forEach(d => {
+      delete familyData.people[d.id];
+    });
+    // Then delete the person
+    removePerson(personId);
+    closeAllPopups();
+  });
+
+  card.appendChild(form);
 }
 
 /**
