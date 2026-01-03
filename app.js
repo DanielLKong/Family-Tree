@@ -553,38 +553,252 @@ function handleMenuClick(event) {
 }
 
 /**
- * Show form to add a child
+ * Show unified panel to add/manage children
  */
 function showAddChildForm(parentId, card) {
   closeAllPopups();
-
-  const form = document.createElement('form');
-  form.className = 'add-form';
-  form.innerHTML = `
-    <input type="text" name="childName" placeholder="Child's full name" autofocus>
-    <div class="add-form-buttons">
-      <button type="button" onclick="closeAllPopups()">Cancel</button>
-      <button type="submit">Add</button>
-    </div>
-  `;
-
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const name = form.querySelector('input[name="childName"]').value.trim();
-    if (name) {
-      addChild(parentId, name);
-      closeAllPopups();
-      // Show reorder panel after adding
-      showReorderPanel(parentId);
-    }
-  });
-
-  card.appendChild(form);
-  form.querySelector('input').focus();
+  showManageChildrenPanel(parentId);
 }
 
 /**
- * Show form to add a sibling
+ * Show panel to manage children (add multiple + reorder)
+ */
+function showManageChildrenPanel(parentId) {
+  closeReorderPanel();
+
+  const parent = getPersonById(parentId);
+  if (!parent) return;
+
+  const children = getChildren(parentId);
+
+  // Create overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'reorder-overlay';
+  overlay.addEventListener('click', () => saveAndCloseManagePanel(parentId));
+  document.body.appendChild(overlay);
+
+  // Create panel
+  const panel = document.createElement('div');
+  panel.className = 'reorder-panel manage-panel';
+  panel.dataset.parentId = parentId;
+
+  const title = parent.name.split(' ')[0] + "'s Children";
+
+  panel.innerHTML = `
+    <h3>${title}</h3>
+    <p>Add children and drag to reorder (oldest first)</p>
+    <ul class="reorder-list"></ul>
+    <button class="done-btn">Done</button>
+  `;
+
+  const list = panel.querySelector('.reorder-list');
+
+  // Add existing children
+  children.forEach((child, index) => {
+    addManageRow(list, child.name, child.id, index + 1);
+  });
+
+  // Add empty row for new entry
+  addEmptyRow(list, parentId, 'child');
+
+  // Done button
+  panel.querySelector('.done-btn').addEventListener('click', () => {
+    saveAndCloseManagePanel(parentId);
+  });
+
+  document.body.appendChild(panel);
+
+  // Focus first empty input
+  const emptyInput = panel.querySelector('.manage-input:not([data-person-id])');
+  if (emptyInput) emptyInput.focus();
+}
+
+/**
+ * Add a row to the manage panel (existing person)
+ */
+function addManageRow(list, name, personId, orderNum) {
+  const item = document.createElement('li');
+  item.className = 'reorder-item manage-row';
+  item.draggable = true;
+  if (personId) item.dataset.personId = personId;
+
+  item.innerHTML = `
+    <span class="drag-handle">☰</span>
+    <input type="text" class="manage-input" value="${name}" placeholder="Enter name..." ${personId ? `data-person-id="${personId}"` : ''}>
+    <span class="order-num">${orderNum}</span>
+    ${personId ? '<button class="remove-row" title="Remove">×</button>' : ''}
+  `;
+
+  // Drag events
+  item.addEventListener('dragstart', handleDragStart);
+  item.addEventListener('dragend', handleManageDragEnd);
+  item.addEventListener('dragover', handleDragOver);
+  item.addEventListener('drop', handleDrop);
+
+  // Remove button
+  const removeBtn = item.querySelector('.remove-row');
+  if (removeBtn) {
+    removeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      item.remove();
+      updateOrderNumbers();
+    });
+  }
+
+  list.appendChild(item);
+  return item;
+}
+
+/**
+ * Add empty row for new entry
+ */
+function addEmptyRow(list, parentId, type) {
+  const orderNum = list.querySelectorAll('.reorder-item').length + 1;
+  const item = document.createElement('li');
+  item.className = 'reorder-item manage-row empty-row';
+  item.draggable = false;
+
+  item.innerHTML = `
+    <span class="drag-handle" style="visibility: hidden;">☰</span>
+    <input type="text" class="manage-input" placeholder="Add another..." data-type="${type}">
+    <span class="order-num">${orderNum}</span>
+  `;
+
+  const input = item.querySelector('.manage-input');
+  let hasConverted = false; // Track if already converted
+
+  input.addEventListener('input', (e) => {
+    const value = e.target.value;
+    // Only convert once, when first character is typed
+    if (value.length > 0 && !hasConverted) {
+      hasConverted = true;
+
+      // Convert this to a real row
+      item.classList.remove('empty-row');
+      item.draggable = true;
+      item.querySelector('.drag-handle').style.visibility = 'visible';
+
+      // Add remove button
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'remove-row';
+      removeBtn.title = 'Remove';
+      removeBtn.textContent = '×';
+      removeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        item.remove();
+        updateOrderNumbers();
+      });
+      item.appendChild(removeBtn);
+
+      // Add drag events
+      item.addEventListener('dragstart', handleDragStart);
+      item.addEventListener('dragend', handleManageDragEnd);
+      item.addEventListener('dragover', handleDragOver);
+      item.addEventListener('drop', handleDrop);
+
+      // Add new empty row below
+      addEmptyRow(list, parentId, type);
+    }
+  });
+
+  list.appendChild(item);
+}
+
+/**
+ * Update order numbers after drag/remove
+ */
+function updateOrderNumbers() {
+  const items = document.querySelectorAll('.reorder-list .reorder-item');
+  items.forEach((item, index) => {
+    const orderNum = item.querySelector('.order-num');
+    if (orderNum) orderNum.textContent = index + 1;
+  });
+}
+
+/**
+ * Handle drag end for manage panel
+ */
+function handleManageDragEnd(e) {
+  const item = e.target.closest('.reorder-item');
+  if (item) item.classList.remove('dragging');
+
+  document.querySelectorAll('.reorder-item').forEach(item => {
+    item.classList.remove('drag-over');
+  });
+
+  updateOrderNumbers();
+  draggedItem = null;
+}
+
+/**
+ * Save all changes and close manage panel
+ */
+function saveAndCloseManagePanel(parentId) {
+  const panel = document.querySelector('.manage-panel');
+  if (!panel) {
+    closeReorderPanel();
+    return;
+  }
+
+  const parent = getPersonById(parentId);
+  if (!parent) {
+    closeReorderPanel();
+    return;
+  }
+
+  const rows = panel.querySelectorAll('.reorder-item:not(.empty-row)');
+  const existingChildren = getChildren(parentId);
+  const existingIds = existingChildren.map(c => c.id);
+  const processedIds = [];
+
+  rows.forEach((row, index) => {
+    const input = row.querySelector('.manage-input');
+    const name = input.value.trim();
+    const personId = row.dataset.personId;
+
+    if (!name) return; // Skip empty names
+
+    if (personId && existingIds.includes(personId)) {
+      // Update existing child
+      const person = getPersonById(personId);
+      if (person) {
+        person.name = name;
+        person.birthOrder = index + 1;
+      }
+      processedIds.push(personId);
+    } else if (name) {
+      // Add new child
+      const parentIds = [parentId];
+      if (parent.spouseId) parentIds.push(parent.spouseId);
+
+      const id = generateId(name);
+      familyData.people[id] = {
+        id,
+        name,
+        parentIds,
+        spouseId: null,
+        birthOrder: index + 1
+      };
+      processedIds.push(id);
+    }
+  });
+
+  // Remove children that were deleted (existed before but not in processedIds)
+  existingIds.forEach(id => {
+    if (!processedIds.includes(id)) {
+      // Delete this person and their descendants
+      const descendants = getDescendants(id);
+      descendants.forEach(d => delete familyData.people[d.id]);
+      delete familyData.people[id];
+    }
+  });
+
+  closeReorderPanel();
+  renderTree();
+}
+
+/**
+ * Show unified panel to add/manage siblings
  */
 function showAddSiblingForm(personId, card) {
   closeAllPopups();
@@ -592,36 +806,13 @@ function showAddSiblingForm(personId, card) {
   const person = getPersonById(personId);
   if (!person) return;
 
-  const isRootPerson = person.parentIds.length === 0;
-
-  const form = document.createElement('form');
-  form.className = 'add-form';
-  form.innerHTML = `
-    <input type="text" name="siblingName" placeholder="Sibling's full name" autofocus>
-    <div class="add-form-buttons">
-      <button type="button" onclick="closeAllPopups()">Cancel</button>
-      <button type="submit">Add</button>
-    </div>
-  `;
-
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const name = form.querySelector('input[name="siblingName"]').value.trim();
-    if (name) {
-      if (isRootPerson) {
-        addRootSibling(personId, name);
-        closeAllPopups();
-        showRootReorderPanel();
-      } else {
-        addSibling(personId, name);
-        closeAllPopups();
-        showReorderPanel(person.parentIds[0]);
-      }
-    }
-  });
-
-  card.appendChild(form);
-  form.querySelector('input').focus();
+  if (person.parentIds.length === 0) {
+    // Root person - manage root siblings
+    showManageRootSiblingsPanel();
+  } else {
+    // Has parents - manage parent's children (siblings)
+    showManageChildrenPanel(person.parentIds[0]);
+  }
 }
 
 /**
@@ -844,6 +1035,113 @@ function showReorderPanel(parentId) {
  */
 function closeReorderPanel() {
   document.querySelectorAll('.reorder-panel, .reorder-overlay').forEach(el => el.remove());
+}
+
+/**
+ * Show panel to manage root siblings (add multiple + reorder)
+ */
+function showManageRootSiblingsPanel() {
+  closeReorderPanel();
+
+  const rootPeople = familyData.rootPersonIds
+    .map(id => getPersonById(id))
+    .filter(p => p)
+    .sort((a, b) => (a.birthOrder || 999) - (b.birthOrder || 999));
+
+  // Create overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'reorder-overlay';
+  overlay.addEventListener('click', saveAndCloseRootSiblingsPanel);
+  document.body.appendChild(overlay);
+
+  // Create panel
+  const panel = document.createElement('div');
+  panel.className = 'reorder-panel manage-panel manage-root-panel';
+
+  panel.innerHTML = `
+    <h3>Root Generation</h3>
+    <p>Add siblings and drag to reorder (oldest first)</p>
+    <ul class="reorder-list"></ul>
+    <button class="done-btn">Done</button>
+  `;
+
+  const list = panel.querySelector('.reorder-list');
+
+  // Add existing root people
+  rootPeople.forEach((person, index) => {
+    addManageRow(list, person.name, person.id, index + 1);
+  });
+
+  // Add empty row for new entry
+  addEmptyRow(list, null, 'root');
+
+  // Done button
+  panel.querySelector('.done-btn').addEventListener('click', saveAndCloseRootSiblingsPanel);
+
+  document.body.appendChild(panel);
+
+  // Focus first empty input
+  const emptyInput = panel.querySelector('.manage-input:not([data-person-id])');
+  if (emptyInput) emptyInput.focus();
+}
+
+/**
+ * Save root siblings and close panel
+ */
+function saveAndCloseRootSiblingsPanel() {
+  const panel = document.querySelector('.manage-root-panel');
+  if (!panel) {
+    closeReorderPanel();
+    return;
+  }
+
+  const rows = panel.querySelectorAll('.reorder-item:not(.empty-row)');
+  const existingIds = [...familyData.rootPersonIds];
+  const newRootIds = [];
+
+  rows.forEach((row, index) => {
+    const input = row.querySelector('.manage-input');
+    const name = input.value.trim();
+    const personId = row.dataset.personId;
+
+    if (!name) return; // Skip empty names
+
+    if (personId && existingIds.includes(personId)) {
+      // Update existing person
+      const person = getPersonById(personId);
+      if (person) {
+        person.name = name;
+        person.birthOrder = index + 1;
+      }
+      newRootIds.push(personId);
+    } else if (name) {
+      // Add new root person
+      const id = generateId(name);
+      familyData.people[id] = {
+        id,
+        name,
+        parentIds: [],
+        spouseId: null,
+        birthOrder: index + 1
+      };
+      newRootIds.push(id);
+    }
+  });
+
+  // Remove people that were deleted
+  existingIds.forEach(id => {
+    if (!newRootIds.includes(id)) {
+      const descendants = getDescendants(id);
+      descendants.forEach(d => delete familyData.people[d.id]);
+      delete familyData.people[id];
+    }
+  });
+
+  // Update rootPersonIds
+  familyData.rootPersonIds = newRootIds;
+
+  closeReorderPanel();
+  renderTree();
 }
 
 /**
@@ -1196,6 +1494,116 @@ function removePerson(personId) {
 }
 
 // ============================================
+// ZOOM & PAN
+// ============================================
+
+// Zoom state
+let currentZoom = 1;
+const MIN_ZOOM = 0.25;
+const MAX_ZOOM = 2;
+const ZOOM_STEP = 0.25;
+
+/**
+ * Set the zoom level and update UI
+ */
+function setZoom(level) {
+  currentZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, level));
+
+  const tree = document.querySelector('.tree');
+  const zoomDisplay = document.querySelector('.zoom-level');
+
+  if (tree) {
+    tree.style.transform = `scale(${currentZoom})`;
+  }
+
+  if (zoomDisplay) {
+    zoomDisplay.textContent = `${Math.round(currentZoom * 100)}%`;
+  }
+}
+
+/**
+ * Zoom in by one step
+ */
+function zoomIn() {
+  setZoom(currentZoom + ZOOM_STEP);
+}
+
+/**
+ * Zoom out by one step
+ */
+function zoomOut() {
+  setZoom(currentZoom - ZOOM_STEP);
+}
+
+/**
+ * Reset zoom to 100%
+ */
+function zoomReset() {
+  setZoom(1);
+}
+
+/**
+ * Initialize zoom controls
+ */
+function initZoomControls() {
+  const zoomInBtn = document.querySelector('.zoom-in');
+  const zoomOutBtn = document.querySelector('.zoom-out');
+  const zoomResetBtn = document.querySelector('.zoom-reset');
+
+  if (zoomInBtn) {
+    zoomInBtn.addEventListener('click', zoomIn);
+  }
+
+  if (zoomOutBtn) {
+    zoomOutBtn.addEventListener('click', zoomOut);
+  }
+
+  if (zoomResetBtn) {
+    zoomResetBtn.addEventListener('click', zoomReset);
+  }
+}
+
+/**
+ * Initialize drag-to-scroll on the page
+ */
+function initDragToScroll() {
+  let isDragging = false;
+  let startX, startY, scrollLeft, scrollTop;
+
+  document.addEventListener('mousedown', (e) => {
+    // Only drag on empty areas, not on interactive elements
+    if (e.target.closest('.person-card, .card-dropdown, .add-form, button, .zoom-controls, .legend, .header, input')) {
+      return;
+    }
+
+    isDragging = true;
+    document.body.style.cursor = 'grabbing';
+    document.body.style.userSelect = 'none';
+    startX = e.clientX;
+    startY = e.clientY;
+    scrollLeft = window.scrollX;
+    scrollTop = window.scrollY;
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (isDragging) {
+      isDragging = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+
+    window.scrollTo(scrollLeft - dx, scrollTop - dy);
+  });
+}
+
+// ============================================
 // INITIALIZATION
 // ============================================
 
@@ -1204,6 +1612,8 @@ function removePerson(personId) {
  */
 function init() {
   renderTree();
+  initZoomControls();
+  initDragToScroll();
 
   // Close popups when clicking outside
   document.addEventListener('click', (e) => {

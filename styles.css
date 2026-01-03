@@ -69,9 +69,10 @@ body {
    Container & Header
    ========================================== */
 .container {
-    max-width: 1000px;
+    max-width: 100%;
     margin: 0 auto;
-    padding: var(--space-2xl) var(--space-lg);
+    padding: var(--space-2xl) var(--space-2xl);
+    min-width: max-content;
 }
 
 .header {
@@ -111,6 +112,10 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
+    transform-origin: center top;
+    transition: transform 0.2s ease;
+    padding: 0 var(--space-2xl) var(--space-2xl);
+    min-width: max-content;
 }
 
 .generation {
@@ -259,16 +264,9 @@ body {
     padding-top: 50px;
 }
 
-/* Horizontal line connecting root siblings */
-.root-siblings::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: calc(100% - var(--card-width));
-    height: 2px;
-    background: var(--line);
+/* Root siblings container */
+.root-siblings > .family-branch {
+    position: relative;
 }
 
 /* Vertical lines from horizontal bar to each root sibling */
@@ -283,8 +281,36 @@ body {
     background: var(--line);
 }
 
-.root-siblings > .family-branch {
-    position: relative;
+/* Horizontal line segments for root siblings */
+.root-siblings > .family-branch::after {
+    content: '';
+    position: absolute;
+    top: -50px;
+    height: 2px;
+    background: var(--line);
+}
+
+/* First root sibling: from center to right */
+.root-siblings > .family-branch:first-child:not(:last-child)::after {
+    left: 50%;
+    right: calc(-1 * var(--space-xl) / 2);
+}
+
+/* Last root sibling: from left to center */
+.root-siblings > .family-branch:last-child:not(:first-child)::after {
+    left: calc(-1 * var(--space-xl) / 2);
+    right: 50%;
+}
+
+/* Middle root siblings: full width plus gaps */
+.root-siblings > .family-branch:not(:first-child):not(:last-child)::after {
+    left: calc(-1 * var(--space-xl) / 2);
+    right: calc(-1 * var(--space-xl) / 2);
+}
+
+/* Only root child: no horizontal line */
+.root-siblings > .family-branch:only-child::after {
+    display: none;
 }
 
 /* ==========================================
@@ -310,27 +336,11 @@ body {
     position: relative;
 }
 
-/* Horizontal line connecting siblings */
-.branch-children::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    height: 2px;
-    background: var(--line);
-}
-
-/* Calculate horizontal line width based on number of children */
-.branch-children:has(> .family-branch:nth-child(2))::before {
-    width: calc(100% - var(--card-width));
-}
-
-.branch-children:has(> .family-branch:nth-child(1):last-child)::before {
-    display: none;
-}
-
 /* Vertical lines from horizontal bar to each child */
+.branch-children > .family-branch {
+    position: relative;
+}
+
 .branch-children > .family-branch::before {
     content: '';
     width: 2px;
@@ -338,6 +348,38 @@ body {
     background: var(--line);
     flex-shrink: 0;
     margin-bottom: var(--space-md);
+}
+
+/* Horizontal line segments - each child draws its portion */
+.branch-children > .family-branch::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    height: 2px;
+    background: var(--line);
+}
+
+/* First child: from center to right edge + half gap */
+.branch-children > .family-branch:first-child:not(:last-child)::after {
+    left: 50%;
+    right: calc(-1 * var(--space-xl) / 2);
+}
+
+/* Last child: from left edge + half gap to center */
+.branch-children > .family-branch:last-child:not(:first-child)::after {
+    left: calc(-1 * var(--space-xl) / 2);
+    right: 50%;
+}
+
+/* Middle children: full width plus half gaps on each side */
+.branch-children > .family-branch:not(:first-child):not(:last-child)::after {
+    left: calc(-1 * var(--space-xl) / 2);
+    right: calc(-1 * var(--space-xl) / 2);
+}
+
+/* Only child: no horizontal line */
+.branch-children > .family-branch:only-child::after {
+    display: none;
 }
 
 /* Ensure person cards in same row align */
@@ -538,13 +580,70 @@ body {
 }
 
 /* ==========================================
+   Zoom Controls (floating)
+   ========================================== */
+.zoom-controls {
+    position: fixed;
+    bottom: var(--space-lg);
+    right: var(--space-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    background: white;
+    padding: var(--space-sm);
+    border-radius: 10px;
+    border: 1px solid var(--card-border);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+}
+
+.zoom-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1px solid var(--card-border);
+    background: var(--card-bg);
+    color: var(--text-primary);
+    font-size: 18px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.zoom-btn:hover {
+    background: var(--card-hover);
+    border-color: var(--text-tertiary);
+}
+
+.zoom-btn:active {
+    transform: scale(0.95);
+}
+
+.zoom-btn.zoom-reset {
+    width: auto;
+    padding: 0 var(--space-md);
+    font-size: 13px;
+}
+
+.zoom-level {
+    min-width: 50px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ==========================================
    Legend
    ========================================== */
 .legend {
     display: flex;
     justify-content: center;
     gap: var(--space-xl);
-    margin-top: var(--space-2xl);
+    margin-top: var(--space-lg);
     padding-top: var(--space-xl);
     border-top: 1px solid var(--line);
 }
@@ -941,4 +1040,79 @@ body {
     bottom: 0;
     background: rgba(0, 0, 0, 0.3);
     z-index: 199;
+}
+
+/* ==========================================
+   Manage Panel (add + reorder combined)
+   ========================================== */
+.manage-panel {
+    min-width: 320px;
+    max-width: 400px;
+}
+
+.manage-row {
+    position: relative;
+}
+
+.manage-row .manage-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--text-primary);
+    outline: none;
+    padding: 4px 0;
+}
+
+.manage-row .manage-input::placeholder {
+    color: var(--text-tertiary);
+}
+
+.manage-row .manage-input:focus {
+    background: transparent;
+}
+
+.manage-row.empty-row {
+    background: transparent;
+    border-style: dashed;
+    cursor: text;
+}
+
+.manage-row.empty-row:hover {
+    background: var(--card-bg);
+}
+
+.manage-row .remove-row {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    border: none;
+    background: transparent;
+    color: var(--text-tertiary);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: all 0.15s ease;
+}
+
+.manage-row:hover .remove-row {
+    opacity: 1;
+}
+
+.manage-row .remove-row:hover {
+    background: #fee;
+    color: #c53030;
+}
+
+.manage-row .order-num {
+    margin-right: 24px;
 }
