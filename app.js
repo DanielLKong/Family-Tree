@@ -411,6 +411,18 @@ function handleMenuClick(event) {
   });
   dropdown.appendChild(addChildBtn);
 
+  // Add Sibling option - only if person has parents
+  if (person.parentIds.length > 0) {
+    const addSiblingBtn = document.createElement('button');
+    addSiblingBtn.className = 'card-dropdown-item';
+    addSiblingBtn.textContent = 'Add Sibling';
+    addSiblingBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      showAddSiblingForm(personId, card);
+    });
+    dropdown.appendChild(addSiblingBtn);
+  }
+
   // Add/Edit Spouse option
   const spouseBtn = document.createElement('button');
   spouseBtn.className = 'card-dropdown-item';
@@ -458,6 +470,40 @@ function showAddChildForm(parentId, card) {
       closeAllPopups();
       // Show reorder panel after adding
       showReorderPanel(parentId);
+    }
+  });
+
+  card.appendChild(form);
+  form.querySelector('input').focus();
+}
+
+/**
+ * Show form to add a sibling
+ */
+function showAddSiblingForm(personId, card) {
+  closeAllPopups();
+
+  const person = getPersonById(personId);
+  if (!person || person.parentIds.length === 0) return;
+
+  const form = document.createElement('form');
+  form.className = 'add-form';
+  form.innerHTML = `
+    <input type="text" name="siblingName" placeholder="Sibling's full name" autofocus>
+    <div class="add-form-buttons">
+      <button type="button" onclick="closeAllPopups()">Cancel</button>
+      <button type="submit">Add</button>
+    </div>
+  `;
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = form.querySelector('input[name="siblingName"]').value.trim();
+    if (name) {
+      addSibling(personId, name);
+      closeAllPopups();
+      // Show reorder panel using the first parent
+      showReorderPanel(person.parentIds[0]);
     }
   });
 
@@ -651,6 +697,18 @@ function showReorderPanel(parentId) {
   });
 
   document.body.appendChild(panel);
+
+  // Allow Enter key to close panel
+  panel.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      closeReorderPanel();
+    }
+  });
+
+  // Focus the panel so it can receive key events
+  panel.setAttribute('tabindex', '0');
+  panel.focus();
 }
 
 /**
@@ -788,6 +846,22 @@ function addChild(parentId, childName) {
     Math.max(max, child.birthOrder || 0), 0);
 
   return addPerson(childName, parentIds, null, maxOrder + 1);
+}
+
+/**
+ * Add a sibling to a person (shares the same parents)
+ */
+function addSibling(personId, siblingName) {
+  const person = getPersonById(personId);
+  if (!person || person.parentIds.length === 0) return null;
+
+  // Get existing siblings to determine birth order
+  const parentId = person.parentIds[0];
+  const existingSiblings = getChildren(parentId);
+  const maxOrder = existingSiblings.reduce((max, sib) =>
+    Math.max(max, sib.birthOrder || 0), 0);
+
+  return addPerson(siblingName, person.parentIds, null, maxOrder + 1);
 }
 
 /**
