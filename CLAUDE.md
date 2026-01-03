@@ -71,6 +71,7 @@
 - [x] Add/Edit/Delete people, spouses, children, siblings
 - [x] Drag-and-drop birth order reordering
 - [x] Root-level siblings with connector
+- [ ] Empty start state (blank screen with + to add first person)
 - [ ] Collapsible branches (expand/collapse)
 - [ ] Zoomable interface (zoom in/out)
 
