@@ -439,6 +439,27 @@ function handleMenuClick(event) {
   });
   dropdown.appendChild(addSiblingBtn);
 
+  // Edit Birth Order option - if has siblings
+  const hasSiblings = person.parentIds.length > 0
+    ? getChildren(person.parentIds[0]).length > 1
+    : familyData.rootPersonIds.length > 1;
+
+  if (hasSiblings) {
+    const reorderBtn = document.createElement('button');
+    reorderBtn.className = 'card-dropdown-item';
+    reorderBtn.textContent = 'Edit Birth Order';
+    reorderBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeAllPopups();
+      if (person.parentIds.length > 0) {
+        showReorderPanel(person.parentIds[0]);
+      } else {
+        showRootReorderPanel();
+      }
+    });
+    dropdown.appendChild(reorderBtn);
+  }
+
   // Add/Edit Spouse option
   const spouseBtn = document.createElement('button');
   spouseBtn.className = 'card-dropdown-item';
@@ -1015,14 +1036,23 @@ function addRootSibling(personId, siblingName) {
   const maxOrder = rootPeople.reduce((max, p) =>
     Math.max(max, p.birthOrder || 0), 0);
 
-  const newId = addPerson(siblingName, [], null, maxOrder + 1);
+  // Create the person without rendering yet
+  const id = generateId(siblingName);
+  familyData.people[id] = {
+    id,
+    name: siblingName,
+    parentIds: [],
+    spouseId: null,
+    birthOrder: maxOrder + 1
+  };
 
   // Add to root person IDs
-  if (newId && !familyData.rootPersonIds.includes(newId)) {
-    familyData.rootPersonIds.push(newId);
-  }
+  familyData.rootPersonIds.push(id);
 
-  return newId;
+  // Now render
+  renderTree();
+
+  return id;
 }
 
 /**
