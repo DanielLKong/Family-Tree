@@ -351,7 +351,18 @@ function renderTree() {
     .sort((a, b) => (a.birthOrder || 999) - (b.birthOrder || 999));
 
   let html;
-  if (rootPeople.length === 1) {
+
+  // Empty state - no people yet
+  if (rootPeople.length === 0) {
+    html = `
+      <div class="empty-state">
+        <button class="add-first-person" title="Add first person">
+          <span class="plus-icon">+</span>
+        </button>
+        <p class="empty-hint">Click to add your first family member</p>
+      </div>
+    `;
+  } else if (rootPeople.length === 1) {
     // Single root - render as before
     html = renderBranch(rootPeople[0].id, true);
   } else {
@@ -366,6 +377,12 @@ function renderTree() {
 
   treeContainer.innerHTML = html;
 
+  // Add click handler for empty state button
+  const addFirstBtn = document.querySelector('.add-first-person');
+  if (addFirstBtn) {
+    addFirstBtn.addEventListener('click', showAddFirstPersonForm);
+  }
+
   // Add click handlers for person cards
   document.querySelectorAll('.person-card').forEach(card => {
     card.addEventListener('click', handleCardClick);
@@ -375,6 +392,58 @@ function renderTree() {
   document.querySelectorAll('.card-menu-btn').forEach(btn => {
     btn.addEventListener('click', handleMenuClick);
   });
+}
+
+/**
+ * Show form to add the first person
+ */
+function showAddFirstPersonForm() {
+  const emptyState = document.querySelector('.empty-state');
+  if (!emptyState) return;
+
+  // Hide the button and hint
+  emptyState.innerHTML = `
+    <form class="add-first-form">
+      <input type="text" name="personName" placeholder="Enter name (e.g., Grandpa John)" autofocus>
+      <div class="add-first-buttons">
+        <button type="button" class="cancel-btn">Cancel</button>
+        <button type="submit">Add</button>
+      </div>
+    </form>
+  `;
+
+  const form = emptyState.querySelector('form');
+  const cancelBtn = emptyState.querySelector('.cancel-btn');
+
+  cancelBtn.addEventListener('click', () => {
+    renderTree(); // Re-render to show empty state again
+  });
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = form.querySelector('input[name="personName"]').value.trim();
+    if (name) {
+      addFirstPerson(name);
+    }
+  });
+
+  form.querySelector('input').focus();
+}
+
+/**
+ * Add the first person to the tree
+ */
+function addFirstPerson(name) {
+  const id = generateId(name);
+  familyData.people[id] = {
+    id,
+    name,
+    parentIds: [],
+    spouseId: null,
+    birthOrder: 1
+  };
+  familyData.rootPersonIds.push(id);
+  renderTree();
 }
 
 /**

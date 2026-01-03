@@ -142,6 +142,112 @@ body {
 }
 
 /* ==========================================
+   Empty State (no people yet)
+   ========================================== */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-2xl) 0;
+}
+
+.add-first-person {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 3px dashed var(--card-border);
+    background: var(--card-bg);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.add-first-person:hover {
+    border-color: var(--text-secondary);
+    background: var(--card-hover);
+    transform: scale(1.05);
+}
+
+.add-first-person .plus-icon {
+    font-size: 48px;
+    color: var(--text-tertiary);
+    font-weight: 300;
+    line-height: 1;
+}
+
+.add-first-person:hover .plus-icon {
+    color: var(--text-secondary);
+}
+
+.empty-hint {
+    margin-top: var(--space-lg);
+    font-size: 14px;
+    color: var(--text-tertiary);
+}
+
+/* Add first person form */
+.add-first-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.add-first-form input {
+    width: 280px;
+    padding: var(--space-md);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    font-family: var(--font-body);
+    font-size: 16px;
+    text-align: center;
+}
+
+.add-first-form input:focus {
+    outline: none;
+    border-color: var(--text-secondary);
+    box-shadow: 0 0 0 3px rgba(232, 213, 202, 0.3);
+}
+
+.add-first-buttons {
+    display: flex;
+    gap: var(--space-sm);
+}
+
+.add-first-buttons button {
+    padding: var(--space-sm) var(--space-lg);
+    border-radius: 6px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.add-first-buttons button[type="submit"] {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    color: var(--text-primary);
+}
+
+.add-first-buttons button[type="submit"]:hover {
+    background: var(--card-hover);
+}
+
+.add-first-buttons .cancel-btn {
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--text-secondary);
+}
+
+.add-first-buttons .cancel-btn:hover {
+    background: var(--bg);
+    border-color: var(--text-tertiary);
+}
+
+/* ==========================================
    Root Siblings (top level with connector)
    ========================================== */
 .root-siblings {
