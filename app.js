@@ -519,12 +519,19 @@ function showSpouseForm(personId, card, existingSpouse) {
 
   const form = document.createElement('form');
   form.className = 'add-form';
+
+  // Add delete button if editing existing spouse
+  const deleteBtn = existingSpouse ? `
+    <button type="button" class="delete-spouse-btn">Delete Spouse</button>
+  ` : '';
+
   form.innerHTML = `
     <input type="text" name="spouseName" placeholder="Spouse's full name" value="${existingSpouse ? existingSpouse.name : ''}" autofocus>
     <div class="add-form-buttons">
       <button type="button" onclick="closeAllPopups()">Cancel</button>
       <button type="submit">${existingSpouse ? 'Update' : 'Add'}</button>
     </div>
+    ${deleteBtn}
   `;
 
   form.addEventListener('submit', (e) => {
@@ -539,6 +546,14 @@ function showSpouseForm(personId, card, existingSpouse) {
       closeAllPopups();
     }
   });
+
+  // Handle delete spouse
+  if (existingSpouse) {
+    form.querySelector('.delete-spouse-btn').addEventListener('click', () => {
+      deleteSpouse(personId, existingSpouse.id);
+      closeAllPopups();
+    });
+  }
 
   card.appendChild(form);
   form.querySelector('input').focus();
@@ -872,6 +887,24 @@ function addSpouse(personId, spouseName) {
   if (!person || person.spouseId) return null;
 
   return addPerson(spouseName, [], personId);
+}
+
+/**
+ * Delete a spouse (removes the spouse and unlinks from person)
+ */
+function deleteSpouse(personId, spouseId) {
+  const person = getPersonById(personId);
+  const spouse = getPersonById(spouseId);
+
+  if (person) {
+    person.spouseId = null;
+  }
+  if (spouse) {
+    spouse.spouseId = null;
+    delete familyData.people[spouseId];
+  }
+
+  renderTree();
 }
 
 /**

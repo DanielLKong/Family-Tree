@@ -667,6 +667,25 @@ body {
     background: #9b2c2c !important;
 }
 
+/* Delete spouse button */
+.delete-spouse-btn {
+    width: 100%;
+    padding: var(--space-sm);
+    margin-top: var(--space-sm);
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: #c53030;
+    font-family: var(--font-body);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.delete-spouse-btn:hover {
+    background: #fff5f5;
+}
+
 /* ==========================================
    Reorder Children List
    ========================================== */
