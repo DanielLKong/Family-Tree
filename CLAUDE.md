@@ -66,9 +66,13 @@
 
 ### Phase 1: Core Visual Tree (Current)
 - [x] Align on visual style with example family tree
-- [ ] Display generations in horizontal rows
-- [ ] Clean, zoomable interface
-- [ ] Warm and personal aesthetic
+- [x] Display generations in horizontal rows
+- [x] Warm and personal aesthetic
+- [x] Add/Edit/Delete people, spouses, children, siblings
+- [x] Drag-and-drop birth order reordering
+- [x] Root-level siblings with connector
+- [ ] Collapsible branches (expand/collapse)
+- [ ] Zoomable interface (zoom in/out)
 
 ### Phase 2: Manual Editing
 - [ ] Add a family member
