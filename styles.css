@@ -142,6 +142,46 @@ body {
 }
 
 /* ==========================================
+   Root Siblings (top level with connector)
+   ========================================== */
+.root-siblings {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: var(--space-xl);
+    position: relative;
+    padding-top: 50px;
+}
+
+/* Horizontal line connecting root siblings */
+.root-siblings::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - var(--card-width));
+    height: 2px;
+    background: var(--line);
+}
+
+/* Vertical lines from horizontal bar to each root sibling */
+.root-siblings > .family-branch::before {
+    content: '';
+    position: absolute;
+    top: -50px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 2px;
+    height: 50px;
+    background: var(--line);
+}
+
+.root-siblings > .family-branch {
+    position: relative;
+}
+
+/* ==========================================
    Family Branch Structure (recursive)
    ========================================== */
 .family-branch {

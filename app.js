@@ -344,8 +344,26 @@ function renderTree() {
     return;
   }
 
-  // Render from root person
-  const html = renderBranch(familyData.rootPersonId, true);
+  // Get root people sorted by birth order
+  const rootPeople = familyData.rootPersonIds
+    .map(id => getPersonById(id))
+    .filter(p => p)
+    .sort((a, b) => (a.birthOrder || 999) - (b.birthOrder || 999));
+
+  let html;
+  if (rootPeople.length === 1) {
+    // Single root - render as before
+    html = renderBranch(rootPeople[0].id, true);
+  } else {
+    // Multiple roots - render as siblings with connector
+    const branches = rootPeople.map(p => renderBranch(p.id, true)).join('');
+    html = `
+      <div class="root-siblings">
+        ${branches}
+      </div>
+    `;
+  }
+
   treeContainer.innerHTML = html;
 
   // Add click handlers for person cards
@@ -411,17 +429,15 @@ function handleMenuClick(event) {
   });
   dropdown.appendChild(addChildBtn);
 
-  // Add Sibling option - only if person has parents
-  if (person.parentIds.length > 0) {
-    const addSiblingBtn = document.createElement('button');
-    addSiblingBtn.className = 'card-dropdown-item';
-    addSiblingBtn.textContent = 'Add Sibling';
-    addSiblingBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      showAddSiblingForm(personId, card);
-    });
-    dropdown.appendChild(addSiblingBtn);
-  }
+  // Add Sibling option - always available
+  const addSiblingBtn = document.createElement('button');
+  addSiblingBtn.className = 'card-dropdown-item';
+  addSiblingBtn.textContent = 'Add Sibling';
+  addSiblingBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    showAddSiblingForm(personId, card);
+  });
+  dropdown.appendChild(addSiblingBtn);
 
   // Add/Edit Spouse option
   const spouseBtn = document.createElement('button');
@@ -484,7 +500,9 @@ function showAddSiblingForm(personId, card) {
   closeAllPopups();
 
   const person = getPersonById(personId);
-  if (!person || person.parentIds.length === 0) return;
+  if (!person) return;
+
+  const isRootPerson = person.parentIds.length === 0;
 
   const form = document.createElement('form');
   form.className = 'add-form';
@@ -500,10 +518,15 @@ function showAddSiblingForm(personId, card) {
     e.preventDefault();
     const name = form.querySelector('input[name="siblingName"]').value.trim();
     if (name) {
-      addSibling(personId, name);
-      closeAllPopups();
-      // Show reorder panel using the first parent
-      showReorderPanel(person.parentIds[0]);
+      if (isRootPerson) {
+        addRootSibling(personId, name);
+        closeAllPopups();
+        showRootReorderPanel();
+      } else {
+        addSibling(personId, name);
+        closeAllPopups();
+        showReorderPanel(person.parentIds[0]);
+      }
     }
   });
 
@@ -733,6 +756,108 @@ function closeReorderPanel() {
   document.querySelectorAll('.reorder-panel, .reorder-overlay').forEach(el => el.remove());
 }
 
+/**
+ * Show reorder panel for root siblings
+ */
+function showRootReorderPanel() {
+  closeReorderPanel();
+
+  const rootPeople = familyData.rootPersonIds
+    .map(id => getPersonById(id))
+    .filter(p => p)
+    .sort((a, b) => (a.birthOrder || 999) - (b.birthOrder || 999));
+
+  if (rootPeople.length < 2) return;
+
+  // Create overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'reorder-overlay';
+  overlay.addEventListener('click', closeReorderPanel);
+  document.body.appendChild(overlay);
+
+  // Create panel
+  const panel = document.createElement('div');
+  panel.className = 'reorder-panel';
+
+  panel.innerHTML = `
+    <h3>Root Generation</h3>
+    <p>Drag to reorder by birth (oldest first)</p>
+    <ul class="reorder-list"></ul>
+    <button class="done-btn" onclick="closeReorderPanel()">Done</button>
+  `;
+
+  const list = panel.querySelector('.reorder-list');
+
+  // Add root people to list
+  rootPeople.forEach((person, index) => {
+    const item = document.createElement('li');
+    item.className = 'reorder-item';
+    item.draggable = true;
+    item.dataset.childId = person.id;
+    item.dataset.isRoot = 'true';
+    item.innerHTML = `
+      <span class="drag-handle">☰</span>
+      <span class="child-name">${person.name}</span>
+      <span class="order-num">${index + 1}</span>
+    `;
+
+    // Drag events
+    item.addEventListener('dragstart', handleDragStart);
+    item.addEventListener('dragend', handleRootDragEnd);
+    item.addEventListener('dragover', handleDragOver);
+    item.addEventListener('drop', handleDrop);
+
+    list.appendChild(item);
+  });
+
+  document.body.appendChild(panel);
+
+  // Allow Enter key to close panel
+  panel.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      closeReorderPanel();
+    }
+  });
+
+  panel.setAttribute('tabindex', '0');
+  panel.focus();
+}
+
+/**
+ * Handle drag end for root siblings (updates rootPersonIds order)
+ */
+function handleRootDragEnd(e) {
+  e.target.closest('.reorder-item').classList.remove('dragging');
+  document.querySelectorAll('.reorder-item').forEach(item => {
+    item.classList.remove('drag-over');
+  });
+
+  // Update birth orders and rootPersonIds based on new positions
+  const list = document.querySelector('.reorder-list');
+  if (list) {
+    const items = list.querySelectorAll('.reorder-item');
+    const newRootIds = [];
+
+    items.forEach((item, index) => {
+      const personId = item.dataset.childId;
+      const person = getPersonById(personId);
+      if (person) {
+        person.birthOrder = index + 1;
+      }
+      newRootIds.push(personId);
+      item.querySelector('.order-num').textContent = index + 1;
+    });
+
+    // Update rootPersonIds array
+    familyData.rootPersonIds = newRootIds;
+
+    renderTree();
+  }
+
+  draggedItem = null;
+}
+
 // Drag and drop state
 let draggedItem = null;
 
@@ -880,6 +1005,27 @@ function addSibling(personId, siblingName) {
 }
 
 /**
+ * Add a sibling at the root level (no parents)
+ */
+function addRootSibling(personId, siblingName) {
+  // Get existing root siblings to determine birth order
+  const rootPeople = familyData.rootPersonIds
+    .map(id => getPersonById(id))
+    .filter(p => p);
+  const maxOrder = rootPeople.reduce((max, p) =>
+    Math.max(max, p.birthOrder || 0), 0);
+
+  const newId = addPerson(siblingName, [], null, maxOrder + 1);
+
+  // Add to root person IDs
+  if (newId && !familyData.rootPersonIds.includes(newId)) {
+    familyData.rootPersonIds.push(newId);
+  }
+
+  return newId;
+}
+
+/**
  * Add a spouse to a person
  */
 function addSpouse(personId, spouseName) {
@@ -938,6 +1084,12 @@ function removePerson(personId) {
   Object.values(familyData.people).forEach(p => {
     p.parentIds = p.parentIds.filter(id => id !== personId);
   });
+
+  // Remove from rootPersonIds if present
+  const rootIndex = familyData.rootPersonIds.indexOf(personId);
+  if (rootIndex > -1) {
+    familyData.rootPersonIds.splice(rootIndex, 1);
+  }
 
   delete familyData.people[personId];
   renderTree();

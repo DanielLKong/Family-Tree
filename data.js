@@ -14,8 +14,8 @@
 */
 
 const familyData = {
-  // The starting person for the tree (top of hierarchy)
-  rootPersonId: "robert-1",
+  // The root generation (siblings at the top of the tree)
+  rootPersonIds: ["robert-1"],
 
   // All people in the family
   people: {
