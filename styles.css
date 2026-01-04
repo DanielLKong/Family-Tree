@@ -580,12 +580,13 @@ body {
 }
 
 /* ==========================================
-   Zoom Controls (floating)
+   Tree Controls (floating - zoom + collapse)
    ========================================== */
-.zoom-controls {
+.tree-controls {
     position: fixed;
     bottom: var(--space-lg);
     right: var(--space-lg);
+    left: auto;
     display: flex;
     align-items: center;
     gap: var(--space-sm);
@@ -597,7 +598,7 @@ body {
     z-index: 100;
 }
 
-.zoom-btn {
+.control-btn {
     width: 36px;
     height: 36px;
     border-radius: 8px;
@@ -613,19 +614,26 @@ body {
     justify-content: center;
 }
 
-.zoom-btn:hover {
+.control-btn:hover {
     background: var(--card-hover);
     border-color: var(--text-tertiary);
 }
 
-.zoom-btn:active {
+.control-btn:active {
     transform: scale(0.95);
 }
 
-.zoom-btn.zoom-reset {
+.control-btn.zoom-reset {
     width: auto;
     padding: 0 var(--space-md);
     font-size: 13px;
+}
+
+.control-divider {
+    width: 1px;
+    height: 24px;
+    background: var(--card-border);
+    margin: 0 var(--space-xs);
 }
 
 .zoom-level {
@@ -768,6 +776,55 @@ body {
 .card-menu-btn:hover {
     background: rgba(0, 0, 0, 0.05);
     color: var(--text-secondary);
+}
+
+/* ==========================================
+   Collapse Button (bottom of card)
+   ========================================== */
+.collapse-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    margin-top: var(--space-sm);
+    padding: 6px 0;
+    border: none;
+    border-top: 1px solid var(--card-border);
+    background: transparent;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.collapse-btn:hover {
+    background: var(--card-hover);
+    color: var(--text-secondary);
+}
+
+.collapse-icon {
+    font-size: 10px;
+    transition: transform 0.2s ease;
+}
+
+.collapse-badge {
+    background: var(--card-border);
+    color: var(--text-secondary);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+/* Collapsed state indicator on card */
+.person-card.is-collapsed {
+    border-color: var(--text-tertiary);
+}
+
+/* Animation for branch collapse/expand */
+.branch-children {
+    transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
 /* ==========================================
@@ -1115,4 +1172,599 @@ body {
 
 .manage-row .order-num {
     margin-right: 24px;
+}
+
+/* ==========================================
+   Profile Side Panel - Enhanced
+   ========================================== */
+.profile-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(26, 26, 26, 0.25);
+    backdrop-filter: blur(2px);
+    z-index: 900;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.profile-overlay.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.profile-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 420px;
+    max-width: 92vw;
+    background: linear-gradient(180deg, #fffcfa 0%, #fff 100%);
+    box-shadow: -8px 0 40px rgba(0, 0, 0, 0.12);
+    z-index: 950;
+    transform: translateX(100%);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow-y: auto;
+    overflow-x: hidden;
+    pointer-events: none;
+}
+
+.profile-panel.visible {
+    transform: translateX(0);
+    pointer-events: auto;
+}
+
+/* Panel Header - Minimal with photo + name */
+.profile-header {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: var(--space-xl) var(--space-lg) var(--space-lg);
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--card-border);
+}
+
+/* Close button stays fixed at top right of viewport */
+.profile-close {
+    position: fixed;
+    top: var(--space-sm);
+    right: var(--space-sm);
+    z-index: 960;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--text-tertiary);
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.profile-close:hover {
+    background: white;
+    color: var(--text-primary);
+}
+
+.profile-avatar {
+    width: 88px;
+    height: 88px;
+    background: linear-gradient(135deg, #f5ebe6 0%, #ede4dd 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: var(--space-md);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    border: 3px solid white;
+}
+
+.profile-avatar span {
+    font-family: var(--font-display);
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.profile-name {
+    font-family: var(--font-display);
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: center;
+    line-height: 1.2;
+}
+
+/* Panel Content */
+.profile-content {
+    padding: var(--space-lg);
+    padding-bottom: var(--space-xl);
+}
+
+/* Section Styling */
+.profile-section {
+    margin-bottom: var(--space-lg);
+    padding-bottom: var(--space-lg);
+    border-bottom: 1px solid rgba(232, 213, 202, 0.5);
+}
+
+.profile-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.profile-section-title {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    margin-bottom: var(--space-md);
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.profile-section-title::before {
+    content: '';
+    width: 12px;
+    height: 1px;
+    background: var(--card-border);
+}
+
+/* Basics Section - Always visible rows */
+.profile-basics-row {
+    display: flex;
+    align-items: baseline;
+    padding: 10px 0;
+    border-bottom: 1px dashed rgba(232, 213, 202, 0.4);
+}
+
+.profile-basics-row:last-child {
+    border-bottom: none;
+}
+
+.profile-basics-label {
+    width: 90px;
+    flex-shrink: 0;
+    font-size: 13px;
+    color: var(--text-tertiary);
+}
+
+.profile-basics-value {
+    flex: 1;
+    font-size: 14px;
+    color: var(--text-primary);
+    font-family: var(--font-body);
+}
+
+.profile-basics-value.empty {
+    color: var(--text-tertiary);
+    font-style: italic;
+}
+
+.profile-basics-value.editable {
+    cursor: pointer;
+    padding: 4px 8px;
+    margin: -4px -8px;
+    border-radius: 4px;
+    transition: background 0.15s ease;
+    min-height: 24px;
+}
+
+.profile-basics-value.editable:hover {
+    background: rgba(232, 213, 202, 0.3);
+}
+
+/* Family Section - Clickable links */
+.profile-family-group {
+    margin-bottom: var(--space-md);
+}
+
+.profile-family-group:last-child {
+    margin-bottom: 0;
+}
+
+.profile-family-label {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-bottom: 6px;
+}
+
+.profile-family-names {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.profile-family-name {
+    font-size: 14px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    padding: 8px 14px;
+    background: white;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.profile-family-name:hover {
+    background: var(--card-bg);
+    border-color: var(--text-tertiary);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* About Section - Only show filled fields */
+.profile-about-item {
+    margin-bottom: var(--space-sm);
+}
+
+.profile-about-item:last-child {
+    margin-bottom: 0;
+}
+
+.profile-about-label {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-bottom: 4px;
+}
+
+.profile-about-value {
+    font-size: 14px;
+    color: var(--text-primary);
+    line-height: 1.5;
+}
+
+.profile-about-value.editable {
+    cursor: pointer;
+    padding: 6px 10px;
+    margin: -6px -10px;
+    border-radius: 6px;
+    transition: background 0.15s ease;
+}
+
+.profile-about-value.editable:hover {
+    background: rgba(232, 213, 202, 0.3);
+}
+
+/* Notes field */
+.profile-notes {
+    font-size: 14px;
+    color: var(--text-primary);
+    line-height: 1.6;
+    background: rgba(232, 213, 202, 0.15);
+    padding: var(--space-md);
+    border-radius: 8px;
+    border-left: 3px solid var(--card-border);
+    font-style: italic;
+}
+
+/* Add info hint */
+.profile-add-hint {
+    color: var(--text-tertiary);
+    font-size: 13px;
+    padding: var(--space-sm) 0;
+    cursor: pointer;
+    transition: color 0.15s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.profile-add-hint:hover {
+    color: var(--text-secondary);
+}
+
+.profile-add-hint::before {
+    content: '+';
+    display: inline-flex;
+    width: 18px;
+    height: 18px;
+    align-items: center;
+    justify-content: center;
+    background: rgba(232, 213, 202, 0.4);
+    border-radius: 50%;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Empty state */
+.profile-empty {
+    font-size: 14px;
+    color: var(--text-tertiary);
+    font-style: italic;
+}
+
+/* ==========================================
+   Flexible Date Picker
+   ========================================== */
+.date-picker-container {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.date-picker-select {
+    padding: 8px 12px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--text-primary);
+    background: white;
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23999' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    padding-right: 28px;
+}
+
+.date-picker-select:hover {
+    border-color: var(--text-tertiary);
+}
+
+.date-picker-select:focus {
+    outline: none;
+    border-color: var(--text-secondary);
+    box-shadow: 0 0 0 3px rgba(232, 213, 202, 0.4);
+}
+
+.date-picker-select.year {
+    width: 90px;
+}
+
+.date-picker-select.month {
+    width: 80px;
+}
+
+.date-picker-select.day {
+    width: 70px;
+}
+
+/* ==========================================
+   Inline Edit Mode
+   ========================================== */
+.profile-edit-input {
+    width: 100%;
+    padding: 8px 10px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--text-primary);
+    background: white;
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    transition: all 0.15s ease;
+}
+
+.profile-edit-input:focus {
+    outline: none;
+    border-color: var(--text-secondary);
+    box-shadow: 0 0 0 3px rgba(232, 213, 202, 0.4);
+}
+
+.profile-edit-textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 10px 12px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--text-primary);
+    background: white;
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    resize: vertical;
+    line-height: 1.5;
+    transition: all 0.15s ease;
+}
+
+.profile-edit-textarea:focus {
+    outline: none;
+    border-color: var(--text-secondary);
+    box-shadow: 0 0 0 3px rgba(232, 213, 202, 0.4);
+}
+
+/* Edit controls */
+.profile-edit-controls {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.profile-edit-save,
+.profile-edit-cancel {
+    padding: 6px 14px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.profile-edit-save {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    color: var(--text-primary);
+}
+
+.profile-edit-save:hover {
+    background: var(--card-hover);
+}
+
+.profile-edit-cancel {
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--text-secondary);
+}
+
+.profile-edit-cancel:hover {
+    background: var(--bg);
+}
+
+/* ==========================================
+   Expanding List Editor (for Also Called, Location)
+   ========================================== */
+.expanding-list-wrapper {
+    width: 100%;
+}
+
+.expanding-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.expanding-list-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    background: white;
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    transition: all 0.15s ease;
+}
+
+.expanding-list-item:hover {
+    border-color: var(--text-tertiary);
+}
+
+.expanding-list-item .drag-handle {
+    color: var(--text-tertiary);
+    font-size: 12px;
+    cursor: grab;
+    user-select: none;
+}
+
+.expanding-list-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--text-primary);
+    outline: none;
+    padding: 4px 0;
+}
+
+.expanding-list-input::placeholder {
+    color: var(--text-tertiary);
+    font-style: italic;
+}
+
+.expanding-list-remove {
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: transparent;
+    color: var(--text-tertiary);
+    font-size: 18px;
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.expanding-list-remove:hover {
+    background: #fee;
+    color: #c53030;
+}
+
+.expanding-list-item.new-item {
+    border-style: dashed;
+    background: transparent;
+}
+
+.expanding-list-item.new-item:hover {
+    background: var(--card-bg);
+}
+
+/* ==========================================
+   Combined Date Picker (Born + Died)
+   ========================================== */
+.profile-dates-editor {
+    padding: 12px 0;
+}
+
+.date-picker-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.date-picker-row:last-of-type {
+    margin-bottom: 16px;
+}
+
+.date-picker-label {
+    width: 100px;
+    flex-shrink: 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.date-picker-selects {
+    display: flex;
+    gap: 8px;
+}
+
+/* Add field dropdown */
+.profile-add-dropdown {
+    position: fixed;
+    background: white;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    z-index: 1000;
+    min-width: 180px;
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.profile-add-option {
+    display: block;
+    width: 100%;
+    padding: 10px 14px;
+    text-align: left;
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--text-primary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: background 0.1s ease;
+}
+
+.profile-add-option:hover {
+    background: var(--card-bg);
+}
+
+.profile-add-option + .profile-add-option {
+    border-top: 1px solid var(--line);
+}
+
+/* Make person name clickable in cards */
+.person-card .name {
+    cursor: pointer;
+    transition: color 0.15s ease;
+}
+
+.person-card .name:hover {
+    color: var(--spouse);
 }

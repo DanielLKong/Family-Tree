@@ -83,6 +83,58 @@ function getInitials(name) {
     .slice(0, 2);
 }
 
+/**
+ * Count all descendants of a person (children, grandchildren, etc.)
+ */
+function countDescendants(personId) {
+  const children = getChildren(personId);
+  let count = children.length;
+  children.forEach(child => {
+    count += countDescendants(child.id);
+  });
+  return count;
+}
+
+/**
+ * Check if a person's branch is collapsed
+ */
+function isCollapsed(personId) {
+  return familyData.collapsedIds.includes(personId);
+}
+
+/**
+ * Toggle collapsed state for a person
+ */
+function toggleCollapsed(personId) {
+  const index = familyData.collapsedIds.indexOf(personId);
+  if (index > -1) {
+    familyData.collapsedIds.splice(index, 1);
+  } else {
+    familyData.collapsedIds.push(personId);
+  }
+  renderTree();
+}
+
+/**
+ * Collapse all branches (people with children)
+ */
+function collapseAll() {
+  const peopleWithChildren = Object.values(familyData.people)
+    .filter(person => getChildren(person.id).length > 0)
+    .map(person => person.id);
+
+  familyData.collapsedIds = peopleWithChildren;
+  renderTree();
+}
+
+/**
+ * Expand all branches
+ */
+function expandAll() {
+  familyData.collapsedIds = [];
+  renderTree();
+}
+
 // ============================================
 // TREE STRUCTURE
 // ============================================
@@ -156,6 +208,9 @@ function renderPerson(personId, options = {}) {
 
   const spouse = getSpouse(personId);
   const initials = getInitials(person.name);
+  const children = getChildren(personId);
+  const hasChildren = children.length > 0;
+  const collapsed = isCollapsed(personId);
 
   // Build spouse HTML if exists
   let spouseHtml = '';
@@ -177,8 +232,21 @@ function renderPerson(personId, options = {}) {
   // Menu button - three dots
   const menuBtn = `<button class="card-menu-btn" data-person-id="${person.id}" title="Options">⋮</button>`;
 
+  // Collapse toggle button (only if has children)
+  let collapseBtn = '';
+  if (hasChildren) {
+    const icon = collapsed ? '▶' : '▼';
+    const badge = collapsed ? `<span class="collapse-badge">+${children.length}</span>` : '';
+    collapseBtn = `
+      <button class="collapse-btn ${collapsed ? 'collapsed' : ''}" data-person-id="${person.id}" title="${collapsed ? 'Expand' : 'Collapse'}">
+        <span class="collapse-icon">${icon}</span>
+        ${badge}
+      </button>
+    `;
+  }
+
   return `
-    <article class="person-card" tabindex="0" data-person-id="${person.id}">
+    <article class="person-card ${collapsed ? 'is-collapsed' : ''}" tabindex="0" data-person-id="${person.id}">
       ${menuBtn}
       <div class="card-main">
         <div class="avatar">
@@ -190,6 +258,7 @@ function renderPerson(personId, options = {}) {
         </div>
       </div>
       ${spouseHtml}
+      ${collapseBtn}
     </article>
   `;
 }
@@ -314,10 +383,11 @@ function renderBranch(personId, isRoot = false) {
   const hasChildren = children.length > 0;
   const spouse = getSpouse(personId);
   const noSpouseClass = !spouse ? 'no-spouse' : '';
+  const collapsed = isCollapsed(personId);
 
-  // Render children branches
+  // Render children branches (only if not collapsed)
   let childrenHtml = '';
-  if (hasChildren) {
+  if (hasChildren && !collapsed) {
     const childBranches = children.map(child => renderBranch(child.id)).join('');
     childrenHtml = `
       <div class="branch-connector"></div>
@@ -326,7 +396,7 @@ function renderBranch(personId, isRoot = false) {
   }
 
   return `
-    <div class="family-branch ${isRoot ? 'root-branch' : ''} ${noSpouseClass}">
+    <div class="family-branch ${isRoot ? 'root-branch' : ''} ${noSpouseClass} ${collapsed ? 'is-collapsed' : ''}">
       ${renderPerson(personId)}
       ${childrenHtml}
     </div>
@@ -392,6 +462,26 @@ function renderTree() {
   document.querySelectorAll('.card-menu-btn').forEach(btn => {
     btn.addEventListener('click', handleMenuClick);
   });
+
+  // Add click handlers for collapse buttons
+  document.querySelectorAll('.collapse-btn').forEach(btn => {
+    btn.addEventListener('click', handleCollapseClick);
+  });
+
+  // Add click handlers for person names (opens profile)
+  document.querySelectorAll('.person-card .name').forEach(name => {
+    name.addEventListener('click', handleNameClick);
+  });
+}
+
+/**
+ * Handle click on collapse button
+ */
+function handleCollapseClick(event) {
+  event.stopPropagation();
+  const button = event.currentTarget;
+  const personId = button.dataset.personId;
+  toggleCollapsed(personId);
 }
 
 /**
@@ -606,6 +696,14 @@ function showManageChildrenPanel(parentId) {
     saveAndCloseManagePanel(parentId);
   });
 
+  // Enter key saves the panel
+  panel.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      saveAndCloseManagePanel(parentId);
+    }
+  });
+
   document.body.appendChild(panel);
 
   // Focus first empty input
@@ -626,7 +724,7 @@ function addManageRow(list, name, personId, orderNum) {
     <span class="drag-handle">☰</span>
     <input type="text" class="manage-input" value="${name}" placeholder="Enter name..." ${personId ? `data-person-id="${personId}"` : ''}>
     <span class="order-num">${orderNum}</span>
-    ${personId ? '<button class="remove-row" title="Remove">×</button>' : ''}
+    ${personId ? '<button class="remove-row" tabindex="-1" title="Remove">×</button>' : ''}
   `;
 
   // Drag events
@@ -683,6 +781,7 @@ function addEmptyRow(list, parentId, type) {
       removeBtn.className = 'remove-row';
       removeBtn.title = 'Remove';
       removeBtn.textContent = '×';
+      removeBtn.tabIndex = -1; // Skip in tab order
       removeBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         item.remove();
@@ -1077,6 +1176,14 @@ function showManageRootSiblingsPanel() {
 
   // Done button
   panel.querySelector('.done-btn').addEventListener('click', saveAndCloseRootSiblingsPanel);
+
+  // Enter key saves the panel
+  panel.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      saveAndCloseRootSiblingsPanel();
+    }
+  });
 
   document.body.appendChild(panel);
 
@@ -1494,11 +1601,920 @@ function removePerson(personId) {
 }
 
 // ============================================
+// PROFILE PANEL
+// ============================================
+
+let profilePanel = null;
+let profileOverlay = null;
+
+/**
+ * Create the profile panel elements (called once on init)
+ */
+function createProfilePanel() {
+  // Create overlay
+  profileOverlay = document.createElement('div');
+  profileOverlay.className = 'profile-overlay';
+  profileOverlay.addEventListener('click', closeProfilePanel);
+  document.body.appendChild(profileOverlay);
+
+  // Create panel
+  profilePanel = document.createElement('div');
+  profilePanel.className = 'profile-panel';
+  document.body.appendChild(profilePanel);
+}
+
+/**
+ * Format a date object for display
+ * Handles partial dates (year only, year+month, full date)
+ */
+function formatDate(dateObj) {
+  if (!dateObj || !dateObj.year) return '';
+
+  const { year, month, day } = dateObj;
+
+  if (day && month) {
+    return `${month}/${day}/${year}`;
+  } else if (month) {
+    return `${month}/${year}`;
+  } else {
+    return `${year}`;
+  }
+}
+
+/**
+ * Calculate age from birth date (and optional death date)
+ */
+function calculateAge(birthDate, deathDate) {
+  if (!birthDate || !birthDate.year) return null;
+
+  const endDate = deathDate && deathDate.year
+    ? new Date(deathDate.year, (deathDate.month || 1) - 1, deathDate.day || 1)
+    : new Date();
+
+  const birthYear = birthDate.year;
+  const birthMonth = birthDate.month || 1;
+  const birthDay = birthDate.day || 1;
+
+  let age = endDate.getFullYear() - birthYear;
+
+  // Adjust if birthday hasn't occurred yet this year
+  const monthDiff = (endDate.getMonth() + 1) - birthMonth;
+  if (monthDiff < 0 || (monthDiff === 0 && endDate.getDate() < birthDay)) {
+    age--;
+  }
+
+  // If we only have year, show approximate
+  if (!birthDate.month) {
+    return `~${age}`;
+  }
+
+  return age.toString();
+}
+
+/**
+ * Open the profile panel for a person
+ */
+function openProfilePanel(personId) {
+  const person = getPersonById(personId);
+  if (!person) return;
+
+  const spouse = getSpouse(personId);
+  const children = getChildren(personId);
+  const parents = person.parentIds.map(id => getPersonById(id)).filter(p => p);
+  const siblings = getSiblings(personId);
+  const initials = getInitials(person.name);
+
+  // === BUILD BASICS SECTION ===
+  // Also called (nicknames) - plain text with commas
+  const alsoCalledText = person.alsoCalled && person.alsoCalled.length > 0
+    ? person.alsoCalled.join(', ')
+    : '';
+
+  // Birth date
+  const birthDateStr = formatDate(person.birthDate);
+
+  // Death date (only show row if exists)
+  const deathDateStr = formatDate(person.deathDate);
+  const isDeceased = deathDateStr !== '';
+
+  // Age calculation
+  const age = calculateAge(person.birthDate, person.deathDate);
+
+  // === BUILD FAMILY SECTION ===
+  let familyHtml = '';
+
+  // Parents (hide if none)
+  if (parents.length > 0) {
+    const parentNames = parents.map(p =>
+      `<span class="profile-family-name" data-person-id="${p.id}">${p.name}</span>`
+    ).join('');
+    familyHtml += `
+      <div class="profile-family-group">
+        <div class="profile-family-label">Parents</div>
+        <div class="profile-family-names">${parentNames}</div>
+      </div>
+    `;
+  }
+
+  // Spouse
+  if (spouse) {
+    familyHtml += `
+      <div class="profile-family-group">
+        <div class="profile-family-label">Spouse</div>
+        <div class="profile-family-names">
+          <span class="profile-family-name" data-person-id="${spouse.id}">${spouse.name}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  // Siblings
+  if (siblings.length > 0) {
+    const siblingNames = siblings.map(s =>
+      `<span class="profile-family-name" data-person-id="${s.id}">${s.name}</span>`
+    ).join('');
+    familyHtml += `
+      <div class="profile-family-group">
+        <div class="profile-family-label">Siblings</div>
+        <div class="profile-family-names">${siblingNames}</div>
+      </div>
+    `;
+  }
+
+  // Children
+  if (children.length > 0) {
+    const childNames = children.map(c =>
+      `<span class="profile-family-name" data-person-id="${c.id}">${c.name}</span>`
+    ).join('');
+    familyHtml += `
+      <div class="profile-family-group">
+        <div class="profile-family-label">Children</div>
+        <div class="profile-family-names">${childNames}</div>
+      </div>
+    `;
+  }
+
+  // If no family connections
+  if (!familyHtml) {
+    familyHtml = '<p class="profile-empty">No family connections yet</p>';
+  }
+
+  // === BUILD ABOUT SECTION ===
+  let aboutHtml = '';
+  const aboutFields = [
+    { key: 'maidenName', label: 'Maiden name', prefix: 'née ' },
+    { key: 'occupation', label: 'Occupation' },
+    { key: 'education', label: 'Education' },
+    { key: 'hobbies', label: 'Hobbies' }
+  ];
+
+  // Helper to format field value (handles arrays and strings)
+  const formatFieldValue = (value, prefix = '') => {
+    if (!value) return '';
+    if (Array.isArray(value)) {
+      return prefix + value.join(', ');
+    }
+    return prefix + value;
+  };
+
+  // Helper to check if field has value
+  const hasValue = (value) => {
+    if (!value) return false;
+    if (Array.isArray(value)) return value.length > 0;
+    return true;
+  };
+
+  aboutFields.forEach(field => {
+    if (hasValue(person[field.key])) {
+      const displayValue = formatFieldValue(person[field.key], field.prefix || '');
+      aboutHtml += `
+        <div class="profile-about-item" data-field="${field.key}">
+          <div class="profile-about-label">${field.label}</div>
+          <div class="profile-about-value editable" data-field="${field.key}">${displayValue}</div>
+        </div>
+      `;
+    }
+  });
+
+  // Notes (plain text like other fields)
+  const notesHtml = person.notes
+    ? `<div class="profile-about-item" data-field="notes">
+        <div class="profile-about-label">Notes</div>
+        <div class="profile-about-value editable" data-field="notes">${person.notes}</div>
+      </div>`
+    : '';
+
+  // Determine if there are missing fields for the "add" hint
+  const missingAboutFields = aboutFields.filter(f => !hasValue(person[f.key]));
+  const hasMissingFields = missingAboutFields.length > 0 || !person.notes;
+
+  const addHintText = hasMissingFields
+    ? 'add additional fields such as hobbies, occupation(s), or any other notes!'
+    : '';
+
+  // === BUILD THE PANEL ===
+  profilePanel.innerHTML = `
+    <div class="profile-header">
+      <button class="profile-close" title="Close">×</button>
+      <div class="profile-avatar">
+        <span>${initials}</span>
+      </div>
+      <h2 class="profile-name">${person.name}</h2>
+    </div>
+    <div class="profile-content">
+      <!-- BASICS SECTION - Always visible -->
+      <div class="profile-section" data-section="basics">
+        <h3 class="profile-section-title">Basics</h3>
+
+        <div class="profile-basics-row">
+          <span class="profile-basics-label">Also called</span>
+          <div class="profile-basics-value editable ${!alsoCalledText ? 'empty' : ''}" data-field="alsoCalled">
+            ${alsoCalledText || '—'}
+          </div>
+        </div>
+
+        <div class="profile-basics-row">
+          <span class="profile-basics-label">Born</span>
+          <div class="profile-basics-value editable ${!birthDateStr ? 'empty' : ''}" data-field="birthDate">
+            ${birthDateStr || '—'}
+          </div>
+        </div>
+
+        ${isDeceased ? `
+        <div class="profile-basics-row">
+          <span class="profile-basics-label">Died</span>
+          <div class="profile-basics-value editable" data-field="deathDate">
+            ${deathDateStr}
+          </div>
+        </div>
+        ` : ''}
+
+        ${age ? `
+        <div class="profile-basics-row">
+          <span class="profile-basics-label">Age</span>
+          <div class="profile-basics-value">
+            ${age}${isDeceased ? ' (at death)' : ''}
+          </div>
+        </div>
+        ` : ''}
+
+        <div class="profile-basics-row">
+          <span class="profile-basics-label">Location</span>
+          <div class="profile-basics-value editable ${!person.location || (Array.isArray(person.location) && person.location.length === 0) ? 'empty' : ''}" data-field="location">
+            ${Array.isArray(person.location) ? person.location.join(', ') : (person.location || '—')}
+          </div>
+        </div>
+      </div>
+
+      <!-- FAMILY SECTION -->
+      <div class="profile-section" data-section="family">
+        <h3 class="profile-section-title">Family</h3>
+        ${familyHtml}
+      </div>
+
+      <!-- ABOUT SECTION - Only show filled fields -->
+      <div class="profile-section" data-section="about">
+        <h3 class="profile-section-title">About</h3>
+        ${aboutHtml}
+        ${notesHtml}
+        ${addHintText ? `<div class="profile-add-hint" data-person-id="${personId}">${addHintText}</div>` : ''}
+      </div>
+    </div>
+  `;
+
+  // Store current person ID for editing
+  profilePanel.dataset.personId = personId;
+
+  // Add event listeners
+  profilePanel.querySelector('.profile-close').addEventListener('click', closeProfilePanel);
+
+  // Family name clicks - navigate to that person's profile
+  profilePanel.querySelectorAll('.profile-family-name').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = el.dataset.personId;
+      openProfilePanel(id);
+    });
+  });
+
+  // Editable field clicks - enter edit mode
+  profilePanel.querySelectorAll('.editable').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const field = el.dataset.field;
+      enterEditMode(personId, field, el);
+    });
+  });
+
+  // Add hint click - show dropdown of fields to add
+  const addHint = profilePanel.querySelector('.profile-add-hint');
+  if (addHint) {
+    addHint.addEventListener('click', (e) => {
+      e.stopPropagation();
+      showAddFieldDropdown(personId, addHint);
+    });
+  }
+
+  // Show panel with animation
+  requestAnimationFrame(() => {
+    profileOverlay.classList.add('visible');
+    profilePanel.classList.add('visible');
+  });
+
+  // Close on Escape key
+  document.addEventListener('keydown', handleProfileEscape);
+}
+
+/**
+ * Enter edit mode for a field
+ */
+function enterEditMode(personId, field, element) {
+  const person = getPersonById(personId);
+  if (!person) return;
+
+  // Field-specific placeholders for expanding list
+  const placeholders = {
+    alsoCalled: 'Grandpa, Nana, Bobby...',
+    location: 'Boston, MA...',
+    maidenName: 'Original surname...',
+    occupation: 'Software Engineer, Teacher...',
+    education: 'MIT, Harvard...',
+    hobbies: 'Gardening, reading...'
+  };
+
+  // Handle different field types
+  if (field === 'birthDate' || field === 'deathDate') {
+    showDatePicker(personId, field, element);
+  } else if (field === 'notes') {
+    showTextareaEditor(personId, field, element);
+  } else if (placeholders[field]) {
+    // Use expanding list for all fields with placeholders
+    showExpandingListEditor(personId, field, element, placeholders[field]);
+  } else {
+    showTextEditor(personId, field, element);
+  }
+}
+
+/**
+ * Show text input editor for simple fields
+ */
+function showTextEditor(personId, field, element) {
+  const person = getPersonById(personId);
+  const currentValue = person[field] || '';
+
+  const container = element.closest('.profile-basics-row, .profile-about-item');
+  const originalHtml = element.outerHTML;
+
+  element.outerHTML = `
+    <div class="profile-edit-wrapper" data-field="${field}">
+      <input type="text" class="profile-edit-input" value="${currentValue}" placeholder="Enter ${field}...">
+      <div class="profile-edit-controls">
+        <button class="profile-edit-save">Save</button>
+        <button class="profile-edit-cancel">Cancel</button>
+      </div>
+    </div>
+  `;
+
+  const wrapper = container.querySelector('.profile-edit-wrapper');
+  const input = wrapper.querySelector('input');
+  input.focus();
+  input.select();
+
+  // Save handler
+  wrapper.querySelector('.profile-edit-save').addEventListener('click', () => {
+    const newValue = input.value.trim();
+    person[field] = newValue || null;
+    openProfilePanel(personId); // Refresh panel
+  });
+
+  // Cancel handler
+  wrapper.querySelector('.profile-edit-cancel').addEventListener('click', () => {
+    openProfilePanel(personId); // Refresh panel
+  });
+
+  // Enter to save, Escape to cancel
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      wrapper.querySelector('.profile-edit-save').click();
+    } else if (e.key === 'Escape') {
+      wrapper.querySelector('.profile-edit-cancel').click();
+    }
+  });
+}
+
+/**
+ * Show textarea editor for notes
+ */
+function showTextareaEditor(personId, field, element) {
+  const person = getPersonById(personId);
+  const currentValue = person[field] || '';
+
+  const container = element.closest('.profile-about-item');
+
+  element.outerHTML = `
+    <div class="profile-edit-wrapper" data-field="${field}">
+      <textarea class="profile-edit-textarea" placeholder="Add notes...">${currentValue}</textarea>
+      <div class="profile-edit-controls">
+        <button class="profile-edit-save">Save</button>
+        <button class="profile-edit-cancel">Cancel</button>
+      </div>
+    </div>
+  `;
+
+  const wrapper = container.querySelector('.profile-edit-wrapper');
+  const textarea = wrapper.querySelector('textarea');
+  textarea.focus();
+
+  // Save handler
+  wrapper.querySelector('.profile-edit-save').addEventListener('click', () => {
+    const newValue = textarea.value.trim();
+    person[field] = newValue || null;
+    openProfilePanel(personId);
+  });
+
+  // Cancel handler
+  wrapper.querySelector('.profile-edit-cancel').addEventListener('click', () => {
+    openProfilePanel(personId);
+  });
+
+  // Escape to cancel (Enter adds new line in textarea)
+  textarea.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      wrapper.querySelector('.profile-edit-cancel').click();
+    }
+  });
+}
+
+/**
+ * Generate date picker HTML for a single date
+ * @param {string} label - Label text
+ * @param {object} dateObj - Current date object
+ * @param {string} prefix - Prefix for data attributes (birth/death)
+ * @param {number} minYear - Minimum year to show (for death date validation)
+ */
+function generateDatePickerHtml(label, dateObj, prefix, minYear = 1800) {
+  const currentDate = dateObj || {};
+  const currentYear = new Date().getFullYear();
+
+  // Generate year options (minYear to current)
+  let yearOptions = '<option value="">--</option>';
+  for (let y = currentYear; y >= minYear; y--) {
+    const selected = currentDate.year === y ? 'selected' : '';
+    yearOptions += `<option value="${y}" ${selected}>${y}</option>`;
+  }
+
+  // Generate month options
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  let monthOptions = '<option value="">--</option>';
+  months.forEach((m, i) => {
+    const selected = currentDate.month === (i + 1) ? 'selected' : '';
+    monthOptions += `<option value="${i + 1}" ${selected}>${m}</option>`;
+  });
+
+  // Generate day options
+  let dayOptions = '<option value="">--</option>';
+  for (let d = 1; d <= 31; d++) {
+    const selected = currentDate.day === d ? 'selected' : '';
+    dayOptions += `<option value="${d}" ${selected}>${d}</option>`;
+  }
+
+  return `
+    <div class="date-picker-row" data-date="${prefix}">
+      <span class="date-picker-label">${label}</span>
+      <div class="date-picker-selects">
+        <select class="date-picker-select month" data-date="${prefix}">${monthOptions}</select>
+        <select class="date-picker-select day" data-date="${prefix}">${dayOptions}</select>
+        <select class="date-picker-select year" data-date="${prefix}">${yearOptions}</select>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Show combined date picker for birth and death dates
+ */
+function showDatePicker(personId, field, element) {
+  const person = getPersonById(personId);
+
+  // Find the basics section to replace both Born and Died rows
+  const basicsSection = element.closest('.profile-section[data-section="basics"]');
+  const bornRow = basicsSection.querySelector('[data-field="birthDate"]')?.closest('.profile-basics-row');
+
+  if (!bornRow) return;
+
+  // Death date minimum year is birth year (if exists), otherwise 1800
+  const deathMinYear = person.birthDate?.year || 1800;
+
+  // Create the combined editor
+  const editorHtml = `
+    <div class="profile-dates-editor">
+      ${generateDatePickerHtml('Born', person.birthDate, 'birth', 1800)}
+      ${generateDatePickerHtml('Died (optional)', person.deathDate, 'death', deathMinYear)}
+      <div class="profile-edit-controls">
+        <button class="profile-edit-save">Save</button>
+        <button class="profile-edit-cancel">Cancel</button>
+      </div>
+    </div>
+  `;
+
+  // Find and hide the existing rows, insert editor
+  const diedRow = basicsSection.querySelector('[data-field="deathDate"]')?.closest('.profile-basics-row');
+  const ageRow = basicsSection.querySelector('.profile-basics-row:has(.profile-basics-value:not(.editable))');
+
+  // Hide rows we're replacing
+  bornRow.style.display = 'none';
+  if (diedRow) diedRow.style.display = 'none';
+  if (ageRow) ageRow.style.display = 'none';
+
+  // Insert editor after born row
+  bornRow.insertAdjacentHTML('afterend', editorHtml);
+
+  const editor = basicsSection.querySelector('.profile-dates-editor');
+
+  // Get references to selects
+  const birthYearSelect = editor.querySelector('.year[data-date="birth"]');
+  const deathYearSelect = editor.querySelector('.year[data-date="death"]');
+  const deathMonthSelect = editor.querySelector('.month[data-date="death"]');
+  const deathDaySelect = editor.querySelector('.day[data-date="death"]');
+
+  // Update death date options based on birth date
+  const updateDeathDateOptions = () => {
+    const birthYear = birthYearSelect.value ? parseInt(birthYearSelect.value) : null;
+    const currentYear = new Date().getFullYear();
+    const minYear = birthYear || 1800;
+
+    // Save current death year selection
+    const currentDeathYear = deathYearSelect.value;
+
+    // Rebuild death year options
+    let yearOptions = '<option value="">--</option>';
+    for (let y = currentYear; y >= minYear; y--) {
+      const selected = parseInt(currentDeathYear) === y ? 'selected' : '';
+      yearOptions += `<option value="${y}" ${selected}>${y}</option>`;
+    }
+    deathYearSelect.innerHTML = yearOptions;
+
+    // If current death year is now invalid, clear it
+    if (currentDeathYear && parseInt(currentDeathYear) < minYear) {
+      deathYearSelect.value = '';
+      deathMonthSelect.value = '';
+      deathDaySelect.value = '';
+    }
+  };
+
+  // Listen for birth year changes
+  birthYearSelect.addEventListener('change', updateDeathDateOptions);
+
+  // Save handler
+  editor.querySelector('.profile-edit-save').addEventListener('click', () => {
+    // Get birth date values
+    const birthYear = editor.querySelector('.year[data-date="birth"]').value;
+    const birthMonth = editor.querySelector('.month[data-date="birth"]').value;
+    const birthDay = editor.querySelector('.day[data-date="birth"]').value;
+
+    // Get death date values
+    const deathYear = editor.querySelector('.year[data-date="death"]').value;
+    const deathMonth = editor.querySelector('.month[data-date="death"]').value;
+    const deathDay = editor.querySelector('.day[data-date="death"]').value;
+
+    // Save birth date
+    if (birthYear) {
+      person.birthDate = {
+        year: parseInt(birthYear),
+        month: birthMonth ? parseInt(birthMonth) : null,
+        day: birthDay ? parseInt(birthDay) : null
+      };
+    } else {
+      person.birthDate = null;
+    }
+
+    // Save death date
+    if (deathYear) {
+      person.deathDate = {
+        year: parseInt(deathYear),
+        month: deathMonth ? parseInt(deathMonth) : null,
+        day: deathDay ? parseInt(deathDay) : null
+      };
+    } else {
+      person.deathDate = null;
+    }
+
+    openProfilePanel(personId);
+  });
+
+  // Cancel handler
+  editor.querySelector('.profile-edit-cancel').addEventListener('click', () => {
+    openProfilePanel(personId);
+  });
+}
+
+/**
+ * Show expanding list editor for arrays (also called, locations, about fields)
+ */
+function showExpandingListEditor(personId, field, element, placeholder, container = null) {
+  const person = getPersonById(personId);
+
+  // Handle both array and string values
+  let currentItems = person[field] || [];
+  if (typeof currentItems === 'string') {
+    currentItems = currentItems ? [currentItems] : [];
+  }
+
+  // Find container - could be basics row or about item
+  if (!container) {
+    container = element.closest('.profile-basics-row') || element.closest('.profile-about-item');
+  }
+
+  // Build list items HTML
+  const buildItemsHtml = (items) => {
+    let html = '';
+    items.forEach((item, index) => {
+      html += `
+        <div class="expanding-list-item" data-index="${index}">
+          <span class="drag-handle">⋮⋮</span>
+          <input type="text" class="expanding-list-input" value="${item}" placeholder="${placeholder}">
+          <button class="expanding-list-remove" title="Remove" tabindex="-1">×</button>
+        </div>
+      `;
+    });
+    // Always add one empty row at the end for new entries
+    html += `
+      <div class="expanding-list-item new-item">
+        <span class="drag-handle">⋮⋮</span>
+        <input type="text" class="expanding-list-input" value="" placeholder="${placeholder}">
+        <button class="expanding-list-remove" title="Remove" tabindex="-1" style="visibility: hidden;">×</button>
+      </div>
+    `;
+    return html;
+  };
+
+  element.outerHTML = `
+    <div class="profile-edit-wrapper expanding-list-wrapper" data-field="${field}">
+      <div class="expanding-list">
+        ${buildItemsHtml(currentItems)}
+      </div>
+      <div class="profile-edit-controls">
+        <button class="profile-edit-save">Save</button>
+        <button class="profile-edit-cancel">Cancel</button>
+      </div>
+    </div>
+  `;
+
+  const wrapper = container.querySelector('.profile-edit-wrapper');
+  const list = wrapper.querySelector('.expanding-list');
+
+  // Focus the first input (or the new-item input if empty)
+  const firstInput = list.querySelector('.expanding-list-input');
+  if (firstInput) {
+    firstInput.focus();
+    if (firstInput.value) {
+      firstInput.select();
+    }
+  }
+
+  // Setup all input handlers
+  const setupNewItemHandler = (item) => {
+    const input = item.querySelector('.expanding-list-input');
+    const removeBtn = item.querySelector('.expanding-list-remove');
+
+    // Only the new-item row should create new rows when filled
+    const handleNewItemInput = () => {
+      if (input.value.trim() && item.classList.contains('new-item')) {
+        // Convert this to a regular row
+        item.classList.remove('new-item');
+        removeBtn.style.visibility = 'visible';
+
+        // Remove the input listener since it's now a regular row
+        input.removeEventListener('input', handleNewItemInput);
+
+        // Add a fresh empty row
+        const newRow = document.createElement('div');
+        newRow.className = 'expanding-list-item new-item';
+        newRow.innerHTML = `
+          <span class="drag-handle">⋮⋮</span>
+          <input type="text" class="expanding-list-input" value="" placeholder="${placeholder}">
+          <button class="expanding-list-remove" title="Remove" tabindex="-1" style="visibility: hidden;">×</button>
+        `;
+        list.appendChild(newRow);
+        setupNewItemHandler(newRow);
+      }
+    };
+
+    if (item.classList.contains('new-item')) {
+      input.addEventListener('input', handleNewItemInput);
+    }
+
+    // Remove button handler
+    removeBtn.addEventListener('click', () => {
+      if (!item.classList.contains('new-item')) {
+        item.remove();
+      }
+    });
+
+    // Enter key moves to next input or saves
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const allInputs = Array.from(list.querySelectorAll('.expanding-list-input'));
+        const currentIndex = allInputs.indexOf(input);
+        if (currentIndex < allInputs.length - 1) {
+          allInputs[currentIndex + 1].focus();
+        } else {
+          wrapper.querySelector('.profile-edit-save').click();
+        }
+      } else if (e.key === 'Escape') {
+        wrapper.querySelector('.profile-edit-cancel').click();
+      }
+    });
+  };
+
+  // Setup handlers for all initial items
+  list.querySelectorAll('.expanding-list-item').forEach(setupNewItemHandler);
+
+  // Save handler - collect all non-empty values
+  wrapper.querySelector('.profile-edit-save').addEventListener('click', () => {
+    const inputs = list.querySelectorAll('.expanding-list-input');
+    const values = Array.from(inputs)
+      .map(input => input.value.trim())
+      .filter(v => v);
+
+    // Store as array, or null if empty
+    person[field] = values.length > 0 ? values : null;
+    openProfilePanel(personId);
+  });
+
+  // Cancel handler
+  wrapper.querySelector('.profile-edit-cancel').addEventListener('click', () => {
+    openProfilePanel(personId);
+  });
+}
+
+/**
+ * Show dropdown to add a new field
+ */
+function showAddFieldDropdown(personId, element) {
+  const person = getPersonById(personId);
+
+  // Remove any existing dropdown
+  const existing = document.querySelector('.profile-add-dropdown');
+  if (existing) existing.remove();
+
+  // Helper to check if field has value
+  const hasValue = (value) => {
+    if (!value) return false;
+    if (Array.isArray(value)) return value.length > 0;
+    return true;
+  };
+
+  // Fields that can be added
+  const availableFields = [
+    { key: 'maidenName', label: 'Maiden name', placeholder: 'Original surname...' },
+    { key: 'occupation', label: 'Occupation', placeholder: 'Software Engineer, Teacher...' },
+    { key: 'education', label: 'Education', placeholder: 'MIT, Harvard...' },
+    { key: 'hobbies', label: 'Hobbies', placeholder: 'Gardening, reading...' },
+    { key: 'notes', label: 'Notes', isTextarea: true }
+  ].filter(f => !hasValue(person[f.key]));
+
+  if (availableFields.length === 0) return;
+
+  const dropdown = document.createElement('div');
+  dropdown.className = 'profile-add-dropdown';
+
+  availableFields.forEach(field => {
+    const btn = document.createElement('button');
+    btn.className = 'profile-add-option';
+    btn.textContent = field.label;
+    btn.addEventListener('click', () => {
+      dropdown.remove();
+
+      // Add the new field to the About section
+      const aboutSection = profilePanel.querySelector('[data-section="about"]');
+      const addHint = aboutSection.querySelector('.profile-add-hint');
+
+      // Create the new about item
+      const newItem = document.createElement('div');
+      newItem.className = 'profile-about-item';
+      newItem.dataset.field = field.key;
+
+      if (field.isTextarea) {
+        // Notes uses textarea but displays as plain text
+        newItem.innerHTML = `
+          <div class="profile-about-label">${field.label}</div>
+          <div class="profile-about-value editable" data-field="${field.key}">—</div>
+        `;
+      } else {
+        // Other fields use expanding list
+        newItem.innerHTML = `
+          <div class="profile-about-label">${field.label}</div>
+          <div class="profile-about-value editable" data-field="${field.key}">—</div>
+        `;
+      }
+
+      // Insert before the add hint
+      if (addHint) {
+        aboutSection.insertBefore(newItem, addHint);
+      } else {
+        aboutSection.appendChild(newItem);
+      }
+
+      // Initialize person field (as empty array for expanding list, empty string for notes)
+      person[field.key] = field.isTextarea ? '' : [];
+
+      // Enter edit mode immediately
+      const newElement = newItem.querySelector(`[data-field="${field.key}"]`);
+      if (newElement) {
+        enterEditMode(personId, field.key, newElement);
+      }
+
+      // Update the add hint text
+      if (addHint) {
+        const aboutFields = [
+          { key: 'maidenName', label: 'Maiden name' },
+          { key: 'occupation', label: 'Occupation' },
+          { key: 'education', label: 'Education' },
+          { key: 'hobbies', label: 'Hobbies' }
+        ];
+        const missingAboutFields = aboutFields.filter(f => !hasValue(person[f.key]));
+        const hasMissingFields = missingAboutFields.length > 0 || !person.notes;
+
+        if (hasMissingFields) {
+          addHint.textContent = 'add additional fields such as hobbies, occupation(s), or any other notes!';
+        } else {
+          addHint.remove();
+        }
+      }
+    });
+    dropdown.appendChild(btn);
+  });
+
+  // Smart positioning - check if there's space below, otherwise go above
+  const rect = element.getBoundingClientRect();
+  const dropdownHeight = Math.min(availableFields.length * 44, 240); // Max 240px
+  const spaceBelow = window.innerHeight - rect.bottom;
+  const spaceAbove = rect.top;
+
+  dropdown.style.position = 'fixed';
+  dropdown.style.left = `${rect.left}px`;
+
+  if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
+    // Position above
+    dropdown.style.bottom = `${window.innerHeight - rect.top + 4}px`;
+    dropdown.style.top = 'auto';
+  } else {
+    // Position below
+    dropdown.style.top = `${rect.bottom + 4}px`;
+    dropdown.style.bottom = 'auto';
+  }
+
+  document.body.appendChild(dropdown);
+
+  // Close on click outside
+  const closeDropdown = (e) => {
+    if (!dropdown.contains(e.target) && e.target !== element) {
+      dropdown.remove();
+      document.removeEventListener('click', closeDropdown);
+    }
+  };
+  setTimeout(() => document.addEventListener('click', closeDropdown), 0);
+}
+
+/**
+ * Close the profile panel
+ */
+function closeProfilePanel() {
+  if (profileOverlay) profileOverlay.classList.remove('visible');
+  if (profilePanel) profilePanel.classList.remove('visible');
+  document.removeEventListener('keydown', handleProfileEscape);
+}
+
+/**
+ * Handle Escape key to close profile
+ */
+function handleProfileEscape(e) {
+  if (e.key === 'Escape') {
+    closeProfilePanel();
+  }
+}
+
+/**
+ * Handle click on person name (opens profile)
+ */
+function handleNameClick(event) {
+  event.stopPropagation();
+  const card = event.target.closest('.person-card');
+  if (card) {
+    const personId = card.dataset.personId;
+    openProfilePanel(personId);
+  }
+}
+
+// ============================================
 // ZOOM & PAN
 // ============================================
 
 // Zoom state
-let currentZoom = 1;
+let currentZoom = 0.75;
+const DEFAULT_ZOOM = 0.75;
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 2;
 const ZOOM_STEP = 0.25;
@@ -1517,7 +2533,9 @@ function setZoom(level) {
   }
 
   if (zoomDisplay) {
-    zoomDisplay.textContent = `${Math.round(currentZoom * 100)}%`;
+    // Display relative to default zoom (so default shows as 100%)
+    const displayPercent = Math.round((currentZoom / DEFAULT_ZOOM) * 100);
+    zoomDisplay.textContent = `${displayPercent}%`;
   }
 }
 
@@ -1536,16 +2554,17 @@ function zoomOut() {
 }
 
 /**
- * Reset zoom to 100%
+ * Reset zoom to default (75%)
  */
 function zoomReset() {
-  setZoom(1);
+  setZoom(DEFAULT_ZOOM);
 }
 
 /**
- * Initialize zoom controls
+ * Initialize tree controls (zoom + collapse/expand all)
  */
-function initZoomControls() {
+function initTreeControls() {
+  // Zoom controls
   const zoomInBtn = document.querySelector('.zoom-in');
   const zoomOutBtn = document.querySelector('.zoom-out');
   const zoomResetBtn = document.querySelector('.zoom-reset');
@@ -1560,6 +2579,18 @@ function initZoomControls() {
 
   if (zoomResetBtn) {
     zoomResetBtn.addEventListener('click', zoomReset);
+  }
+
+  // Collapse/Expand all controls
+  const collapseAllBtn = document.querySelector('.collapse-all');
+  const expandAllBtn = document.querySelector('.expand-all');
+
+  if (collapseAllBtn) {
+    collapseAllBtn.addEventListener('click', collapseAll);
+  }
+
+  if (expandAllBtn) {
+    expandAllBtn.addEventListener('click', expandAll);
   }
 }
 
@@ -1611,9 +2642,11 @@ function initDragToScroll() {
  * Initialize the app when DOM is ready
  */
 function init() {
+  createProfilePanel();
   renderTree();
-  initZoomControls();
+  initTreeControls();
   initDragToScroll();
+  setZoom(DEFAULT_ZOOM); // Apply default zoom
 
   // Close popups when clicking outside
   document.addEventListener('click', (e) => {

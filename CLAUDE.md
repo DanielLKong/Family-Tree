@@ -64,32 +64,28 @@
 
 ## Section 4: Feature Roadmap
 
-### Phase 1: Core Visual Tree (Current)
-- [x] Align on visual style with example family tree
-- [x] Display generations in horizontal rows
-- [x] Warm and personal aesthetic
+### Completed
+- [x] Visual tree with horizontal generations
+- [x] Warm, personal aesthetic (not corporate)
 - [x] Add/Edit/Delete people, spouses, children, siblings
 - [x] Drag-and-drop birth order reordering
-- [x] Root-level siblings with connector
-- [ ] Empty start state (blank screen with + to add first person)
-- [ ] Collapsible branches (expand/collapse)
-- [ ] Zoomable interface (zoom in/out)
+- [x] Collapsible branches with expand/collapse all
+- [x] Zoomable interface (default 100% = comfortable view)
+- [x] Profile side panel (click name to open, shows family connections)
 
-### Phase 2: Manual Editing
-- [ ] Add a family member
-- [ ] Define relationships (parent, child, spouse)
-- [ ] Edit/remove members
+### Current Sprint - Next Up
+1. [~] **Profile content fields** - See Section 6 for full design. Header (photo + name), Basics (also called, born, died, age, location), Family (clickable links), About (occupation, education, hobbies, notes). **STATUS: Implemented, needs review/testing.**
+2. [ ] **Name toggle** - Option to show nickname instead of full name on tree cards
+3. [ ] **Editable header** - Click to edit family name and tagline
+4. [ ] **Local Storage** - Auto-save tree data to browser
+5. [ ] **Export/Import JSON** - Download/upload tree as file for backup
 
-### Phase 3: Profiles
-- [ ] Click on person to see profile card
-- [ ] Name, aliases, occupation
-- [ ] Family connections (spouse, children, parents)
-
-### Phase 4: Collaboration (Future)
-- [ ] User accounts and login
-- [ ] Share tree with edit/view permissions
-- [ ] Photo uploads
-- [ ] Multiple families/trees
+### Future (Phase 2)
+- [ ] User accounts and login (Firebase or similar)
+- [ ] Share tree with family members
+- [ ] Photo uploads to cloud
+- [ ] Multiple family trees per account
+- [ ] Real-time collaboration
 
 ---
 
@@ -114,19 +110,94 @@ Always use the `frontend-design` skill (plugin:frontend-design@claude-plugins-of
 
 ---
 
-## Section 6: Technical Decisions Log
+## Section 6: Profile Panel Design
+
+**Inspiration:** Slack profile sidebar - clean, scannable, personal.
+
+### Structure
+
+**Header**
+- Profile photo (initials in colored circle if no photo)
+- Full name (large, prominent)
+
+**Basics Section** (always visible, show blank if empty)
+- Also called: `___`
+- Born: `___`
+- Died: `___` *(only shows if date entered)*
+- Age: `___` *(calculated, shows if birth date exists)*
+- Location: `___`
+
+**Family Section** (hide rows with no data)
+- Parents *(clickable links, hide if unknown)*
+- Spouse *(clickable)*
+- Siblings *(clickable)*
+- Children *(clickable)*
+
+**About Section** (only show filled fields)
+- Maiden name
+- Occupation
+- Education
+- Hobbies
+- Notes *(single text area)*
+- *faded hint:* "add occupation, education, hobbies..."
+
+### "Also Called" Field
+
+This field captures relationship-based names and nicknames:
+- Shortened names: Robert → "Bob"
+- Relationship names: "Grandpa", "Pop Pop", "Uncle Bobby"
+- Terms of endearment: "Big Mike", "Auntie M"
+
+**Future use:** Enables personalized views where each user sees their own name for a person (e.g., "Grandpa" vs "Uncle Robert").
+
+### Flexible Date Picker
+
+Three-column picker allowing partial dates:
+- Year (1800–2025, with `--` option)
+- Month (Jan–Dec, with `--` option)
+- Day (1–31, with `--` option)
+
+**Display logic:**
+- Year only → `1952`
+- Year + Month → `3/1952`
+- Full date → `3/15/1952`
+- Nothing selected → *(blank)*
+
+**Age calculation:**
+- Living person → current age from today
+- Deceased → age at death
+- Only year known → approximate (e.g., `~73`)
+- No birth date → don't show age
+
+---
+
+## Section 7: Technical Decisions Log
 
 *Will be updated as we build. Documents the "why" behind major choices.*
 
 ---
 
-## Section 7: Glossary of Concepts
+## Section 8: Glossary of Concepts
 
 *Terms and concepts explained in plain language. Will grow as we encounter new ideas.*
 
 ---
 
-## Section 8: Questions & Curiosities
+## Section 9: Questions & Curiosities
 
 *Space for questions that come up during building.*
+
+---
+
+## Section 10: Action Items for Next Session
+
+- [ ] **Review profile panel changes** - Test all the new profile features:
+  - Also called field (expanding list editor)
+  - Born/Died date picker with flexible partial dates
+  - Age calculation (living vs deceased, approximate with ~)
+  - Location field (expanding list for multiple locations)
+  - About section fields (occupation, education, hobbies, notes)
+  - Add field dropdown for adding new fields
+  - Tab navigation between fields
+  - Death date validation (must be after birth date)
 
