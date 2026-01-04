@@ -245,12 +245,18 @@ function renderPerson(personId, options = {}) {
     `;
   }
 
+  // Avatar - show photo if exists, otherwise initials
+  const hasPhoto = person.photo && person.photo.length > 0;
+  const avatarContent = hasPhoto
+    ? `<img src="${person.photo}" alt="${person.name}" class="avatar-img">`
+    : `<span>${initials}</span>`;
+
   return `
     <article class="person-card ${collapsed ? 'is-collapsed' : ''}" tabindex="0" data-person-id="${person.id}">
       ${menuBtn}
       <div class="card-main">
-        <div class="avatar">
-          <span>${initials}</span>
+        <div class="avatar ${hasPhoto ? 'has-photo' : ''}">
+          ${avatarContent}
         </div>
         <div class="info">
           <h2 class="name">${person.name}</h2>
@@ -1606,6 +1612,7 @@ function removePerson(personId) {
 
 let profilePanel = null;
 let profileOverlay = null;
+let profileHistory = []; // Stack for back navigation
 
 /**
  * Create the profile panel elements (called once on init)
@@ -1812,12 +1819,39 @@ function openProfilePanel(personId) {
     ? 'add additional fields such as hobbies, occupation(s), or any other notes!'
     : '';
 
+  // === BUILD PHOTOS SECTION ===
+  const photos = person.photos || [];
+  let photosHtml = '';
+  if (photos.length > 0) {
+    photosHtml = photos.map((photo, index) => `
+      <div class="profile-photo-item" data-index="${index}">
+        <img src="${photo}" alt="Photo ${index + 1}">
+        <button class="profile-photo-remove" data-index="${index}" title="Remove photo">×</button>
+      </div>
+    `).join('');
+  }
+
   // === BUILD THE PANEL ===
+  const hasHistory = profileHistory.length > 0;
+
+  // Build avatar HTML - show photo if exists, otherwise initials
+  const hasPhoto = person.photo && person.photo.length > 0;
+  const avatarContent = hasPhoto
+    ? `<img src="${person.photo}" alt="${person.name}" class="profile-avatar-img">`
+    : `<span>${initials}</span>`;
+
   profilePanel.innerHTML = `
     <div class="profile-header">
+      ${hasHistory ? '<button class="profile-back" title="Go back">←</button>' : ''}
       <button class="profile-close" title="Close">×</button>
-      <div class="profile-avatar">
-        <span>${initials}</span>
+      <div class="profile-avatar clickable" title="Edit photo">
+        ${avatarContent}
+        <div class="profile-avatar-overlay">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+        </div>
       </div>
       <h2 class="profile-name">${person.name}</h2>
     </div>
@@ -1879,6 +1913,23 @@ function openProfilePanel(personId) {
         ${notesHtml}
         ${addHintText ? `<div class="profile-add-hint" data-person-id="${personId}">${addHintText}</div>` : ''}
       </div>
+
+      <!-- PHOTOS SECTION -->
+      <div class="profile-section" data-section="photos">
+        <h3 class="profile-section-title">Photos</h3>
+        <div class="profile-photos-grid" data-person-id="${personId}">
+          ${photosHtml}
+          <div class="profile-photo-add-wrapper">
+            <button class="profile-photo-add" title="Add photos">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 5v14M5 12h14"/>
+              </svg>
+            </button>
+            <div class="profile-photo-drop-hint">Drop photos here</div>
+          </div>
+        </div>
+        <input type="file" class="profile-photos-input" accept="image/*" multiple style="display: none;">
+      </div>
     </div>
   `;
 
@@ -1888,11 +1939,17 @@ function openProfilePanel(personId) {
   // Add event listeners
   profilePanel.querySelector('.profile-close').addEventListener('click', closeProfilePanel);
 
-  // Family name clicks - navigate to that person's profile
+  // Back button click - go to previous profile
+  const backBtn = profilePanel.querySelector('.profile-back');
+  if (backBtn) {
+    backBtn.addEventListener('click', goBackProfile);
+  }
+
+  // Family name clicks - navigate to that person's profile (with history)
   profilePanel.querySelectorAll('.profile-family-name').forEach(el => {
     el.addEventListener('click', () => {
       const id = el.dataset.personId;
-      openProfilePanel(id);
+      navigateToProfile(id);
     });
   });
 
@@ -1913,6 +1970,100 @@ function openProfilePanel(personId) {
       showAddFieldDropdown(personId, addHint);
     });
   }
+
+  // Photo modal - click avatar to open photo editor
+  const avatar = profilePanel.querySelector('.profile-avatar');
+  avatar.addEventListener('click', () => {
+    openPhotoModal(personId);
+  });
+
+  // Photos section - add photo button
+  const addPhotoBtn = profilePanel.querySelector('.profile-photo-add');
+  const photosInput = profilePanel.querySelector('.profile-photos-input');
+  const photosGrid = profilePanel.querySelector('.profile-photos-grid');
+
+  addPhotoBtn.addEventListener('click', () => {
+    photosInput.click();
+  });
+
+  // Handle multiple file selection
+  photosInput.addEventListener('change', (e) => {
+    const files = Array.from(e.target.files);
+    files.forEach(file => addPhotoToGallery(personId, file));
+    photosInput.value = '';
+  });
+
+  // Drag and drop support - on entire panel
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    photosGrid.classList.add('drag-over');
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only remove class if leaving the panel entirely
+    if (!profilePanel.contains(e.relatedTarget)) {
+      photosGrid.classList.remove('drag-over');
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    photosGrid.classList.remove('drag-over');
+
+    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+    files.forEach(file => addPhotoToGallery(personId, file));
+  };
+
+  profilePanel.addEventListener('dragover', handleDragOver);
+  profilePanel.addEventListener('dragleave', handleDragLeave);
+  profilePanel.addEventListener('drop', handleDrop);
+
+  // Clean up old paste handler before adding new one
+  if (profilePanel._pasteHandler) {
+    document.removeEventListener('paste', profilePanel._pasteHandler);
+  }
+
+  // Paste support (when profile panel is visible)
+  const handlePaste = (e) => {
+    // Only handle paste when profile panel is visible
+    if (!profilePanel.classList.contains('visible')) return;
+
+    const items = Array.from(e.clipboardData.items);
+    const imageItems = items.filter(item => item.type.startsWith('image/'));
+
+    if (imageItems.length > 0) {
+      e.preventDefault();
+      // Only add one image (the first one) to avoid duplicates
+      const file = imageItems[0].getAsFile();
+      if (file) addPhotoToGallery(personId, file);
+    }
+  };
+
+  document.addEventListener('paste', handlePaste);
+
+  // Store handlers for cleanup
+  profilePanel._pasteHandler = handlePaste;
+
+  // Photos section - remove buttons
+  profilePanel.querySelectorAll('.profile-photo-remove').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const index = parseInt(btn.dataset.index);
+      removePhotoFromGallery(personId, index);
+    });
+  });
+
+  // Photos section - click to view larger
+  profilePanel.querySelectorAll('.profile-photo-item img').forEach(img => {
+    img.addEventListener('click', () => {
+      const index = parseInt(img.parentElement.dataset.index);
+      openPhotoViewer(personId, index);
+    });
+  });
 
   // Show panel with animation
   requestAnimationFrame(() => {
@@ -2478,12 +2629,674 @@ function showAddFieldDropdown(personId, element) {
   setTimeout(() => document.addEventListener('click', closeDropdown), 0);
 }
 
+// ============================================
+// PHOTO MODAL - LinkedIn-style photo editor
+// ============================================
+
+let photoModal = null;
+let photoModalState = {
+  personId: null,
+  originalImage: null,
+  zoom: 1,
+  panX: 0,
+  panY: 0,
+  isDragging: false,
+  dragStartX: 0,
+  dragStartY: 0
+};
+
+/**
+ * Create photo modal elements (called once on init)
+ */
+function createPhotoModal() {
+  photoModal = document.createElement('div');
+  photoModal.className = 'photo-modal';
+  photoModal.innerHTML = `
+    <div class="photo-modal-backdrop"></div>
+    <div class="photo-modal-container">
+      <div class="photo-modal-header">
+        <h2 class="photo-modal-title">Profile photo</h2>
+        <button class="photo-modal-close" title="Close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="photo-modal-body">
+        <div class="photo-modal-preview">
+          <div class="photo-modal-circle">
+            <div class="photo-modal-initials"></div>
+            <img class="photo-modal-image" src="" alt="" style="display: none;">
+          </div>
+        </div>
+      </div>
+      <div class="photo-modal-actions">
+        <button class="photo-modal-action" data-action="edit">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+          <span>Edit</span>
+        </button>
+        <button class="photo-modal-action" data-action="change">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+          <span>Change photo</span>
+        </button>
+        <button class="photo-modal-action photo-modal-action--danger" data-action="delete">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3,6 5,6 21,6"/>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          </svg>
+          <span>Delete</span>
+        </button>
+      </div>
+      <input type="file" class="photo-modal-file-input" accept="image/*" style="display: none;">
+    </div>
+
+    <!-- Edit/Crop Mode -->
+    <div class="photo-modal-editor" style="display: none;">
+      <div class="photo-modal-header">
+        <h2 class="photo-modal-title">Edit photo</h2>
+        <button class="photo-modal-close" title="Close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="photo-editor-body">
+        <div class="photo-editor-canvas-wrapper">
+          <div class="photo-editor-canvas">
+            <img class="photo-editor-image" src="" alt="" draggable="false">
+          </div>
+          <div class="photo-editor-mask"></div>
+        </div>
+        <div class="photo-editor-controls">
+          <div class="photo-editor-zoom">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/>
+              <path d="M21 21l-4.35-4.35"/>
+              <path d="M8 11h6"/>
+            </svg>
+            <input type="range" class="photo-editor-slider" min="1" max="3" step="0.01" value="1">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/>
+              <path d="M21 21l-4.35-4.35"/>
+              <path d="M8 11h6M11 8v6"/>
+            </svg>
+          </div>
+          <p class="photo-editor-hint">Drag to reposition</p>
+        </div>
+      </div>
+      <div class="photo-editor-footer">
+        <button class="photo-editor-btn photo-editor-btn--cancel">Cancel</button>
+        <button class="photo-editor-btn photo-editor-btn--save">Save photo</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(photoModal);
+
+  // Set up event listeners
+  setupPhotoModalEvents();
+}
+
+/**
+ * Set up photo modal event listeners
+ */
+function setupPhotoModalEvents() {
+  const backdrop = photoModal.querySelector('.photo-modal-backdrop');
+  const closeButtons = photoModal.querySelectorAll('.photo-modal-close');
+  const actionButtons = photoModal.querySelectorAll('.photo-modal-action');
+  const fileInput = photoModal.querySelector('.photo-modal-file-input');
+  const slider = photoModal.querySelector('.photo-editor-slider');
+  const editorImage = photoModal.querySelector('.photo-editor-image');
+  const cancelBtn = photoModal.querySelector('.photo-editor-btn--cancel');
+  const saveBtn = photoModal.querySelector('.photo-editor-btn--save');
+
+  // Close modal
+  backdrop.addEventListener('click', closePhotoModal);
+  closeButtons.forEach(btn => btn.addEventListener('click', closePhotoModal));
+
+  // Action buttons
+  actionButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const action = btn.dataset.action;
+      if (action === 'edit') {
+        openPhotoEditor();
+      } else if (action === 'change') {
+        fileInput.click();
+      } else if (action === 'delete') {
+        deletePhoto();
+      }
+    });
+  });
+
+  // File input change
+  fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      loadImageForEditing(file);
+    }
+    fileInput.value = ''; // Reset for same file selection
+  });
+
+  // Zoom slider
+  slider.addEventListener('input', (e) => {
+    photoModalState.zoom = parseFloat(e.target.value);
+    updateEditorImage();
+  });
+
+  // Drag to pan
+  editorImage.addEventListener('mousedown', startDrag);
+  editorImage.addEventListener('touchstart', startDrag, { passive: false });
+  document.addEventListener('mousemove', handleDrag);
+  document.addEventListener('touchmove', handleDrag, { passive: false });
+  document.addEventListener('mouseup', endDrag);
+  document.addEventListener('touchend', endDrag);
+
+  // Cancel/Save
+  cancelBtn.addEventListener('click', () => {
+    showPhotoModalView();
+  });
+  saveBtn.addEventListener('click', saveEditedPhoto);
+
+  // Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && photoModal.classList.contains('visible')) {
+      closePhotoModal();
+    }
+  });
+}
+
+/**
+ * Open the photo modal for a person
+ */
+function openPhotoModal(personId) {
+  const person = getPersonById(personId);
+  if (!person) return;
+
+  photoModalState.personId = personId;
+  photoModalState.zoom = 1;
+  photoModalState.panX = 0;
+  photoModalState.panY = 0;
+
+  const hasPhoto = person.photo && person.photo.length > 0;
+  const initials = getInitials(person.name);
+
+  // Update modal content
+  const initialsEl = photoModal.querySelector('.photo-modal-initials');
+  const imageEl = photoModal.querySelector('.photo-modal-image');
+  const editBtn = photoModal.querySelector('[data-action="edit"]');
+  const changeBtn = photoModal.querySelector('[data-action="change"]');
+  const deleteBtn = photoModal.querySelector('[data-action="delete"]');
+
+  initialsEl.textContent = initials;
+
+  // Update button label based on whether photo exists
+  const changeBtnLabel = changeBtn.querySelector('span');
+  changeBtnLabel.textContent = hasPhoto ? 'Change photo' : 'Add photo';
+
+  if (hasPhoto) {
+    imageEl.src = person.photo;
+    imageEl.style.display = 'block';
+    initialsEl.style.display = 'none';
+    editBtn.style.display = 'flex';
+    deleteBtn.style.display = 'flex';
+  } else {
+    imageEl.style.display = 'none';
+    initialsEl.style.display = 'flex';
+    editBtn.style.display = 'none';
+    deleteBtn.style.display = 'none';
+  }
+
+  // Show modal
+  showPhotoModalView();
+  photoModal.classList.add('visible');
+}
+
+/**
+ * Show the view mode (not editing)
+ */
+function showPhotoModalView() {
+  const container = photoModal.querySelector('.photo-modal-container');
+  const editor = photoModal.querySelector('.photo-modal-editor');
+  container.style.display = 'flex';
+  editor.style.display = 'none';
+}
+
+/**
+ * Open the photo editor
+ */
+function openPhotoEditor() {
+  const person = getPersonById(photoModalState.personId);
+  if (!person || !person.photo) return;
+
+  photoModalState.originalImage = person.photo;
+  photoModalState.zoom = 1;
+  photoModalState.panX = 0;
+  photoModalState.panY = 0;
+
+  const editorImage = photoModal.querySelector('.photo-editor-image');
+  const slider = photoModal.querySelector('.photo-editor-slider');
+
+  editorImage.src = person.photo;
+  slider.value = 1;
+  updateEditorImage();
+
+  const container = photoModal.querySelector('.photo-modal-container');
+  const editor = photoModal.querySelector('.photo-modal-editor');
+  container.style.display = 'none';
+  editor.style.display = 'flex';
+}
+
+/**
+ * Load an image file for editing
+ */
+function loadImageForEditing(file) {
+  // Validate file type
+  if (!file.type.startsWith('image/')) {
+    alert('Please select an image file.');
+    return;
+  }
+
+  // Limit file size (10MB for editing, will compress on save)
+  const maxSize = 10 * 1024 * 1024;
+  if (file.size > maxSize) {
+    alert('Image is too large. Please select an image under 10MB.');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    photoModalState.originalImage = e.target.result;
+    photoModalState.zoom = 1;
+    photoModalState.panX = 0;
+    photoModalState.panY = 0;
+
+    const editorImage = photoModal.querySelector('.photo-editor-image');
+    const slider = photoModal.querySelector('.photo-editor-slider');
+
+    editorImage.src = e.target.result;
+    slider.value = 1;
+
+    // Wait for image to load to get dimensions
+    editorImage.onload = () => {
+      updateEditorImage();
+    };
+
+    const container = photoModal.querySelector('.photo-modal-container');
+    const editor = photoModal.querySelector('.photo-modal-editor');
+    container.style.display = 'none';
+    editor.style.display = 'flex';
+  };
+  reader.readAsDataURL(file);
+}
+
+/**
+ * Update editor image position and scale
+ */
+function updateEditorImage() {
+  const editorImage = photoModal.querySelector('.photo-editor-image');
+  const { zoom, panX, panY } = photoModalState;
+  editorImage.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
+}
+
+/**
+ * Start dragging the image
+ */
+function startDrag(e) {
+  if (!photoModal.querySelector('.photo-modal-editor').style.display ||
+      photoModal.querySelector('.photo-modal-editor').style.display === 'none') return;
+
+  e.preventDefault();
+  photoModalState.isDragging = true;
+
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+  photoModalState.dragStartX = clientX - photoModalState.panX;
+  photoModalState.dragStartY = clientY - photoModalState.panY;
+
+  document.body.style.cursor = 'grabbing';
+}
+
+/**
+ * Handle drag movement
+ */
+function handleDrag(e) {
+  if (!photoModalState.isDragging) return;
+
+  e.preventDefault();
+
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+  photoModalState.panX = clientX - photoModalState.dragStartX;
+  photoModalState.panY = clientY - photoModalState.dragStartY;
+
+  updateEditorImage();
+}
+
+/**
+ * End dragging
+ */
+function endDrag() {
+  photoModalState.isDragging = false;
+  document.body.style.cursor = '';
+}
+
+/**
+ * Save the edited photo
+ */
+function saveEditedPhoto() {
+  const person = getPersonById(photoModalState.personId);
+  if (!person) return;
+
+  const editorImage = photoModal.querySelector('.photo-editor-image');
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+
+  // Output size for the cropped photo
+  const outputSize = 400;
+  canvas.width = outputSize;
+  canvas.height = outputSize;
+
+  // Get the visible area dimensions
+  const canvasWrapper = photoModal.querySelector('.photo-editor-canvas');
+  const wrapperRect = canvasWrapper.getBoundingClientRect();
+  const imgRect = editorImage.getBoundingClientRect();
+
+  // Calculate the crop area
+  const { zoom, panX, panY } = photoModalState;
+  const naturalWidth = editorImage.naturalWidth;
+  const naturalHeight = editorImage.naturalHeight;
+
+  // The displayed image size before zoom
+  const displayedWidth = imgRect.width / zoom;
+  const displayedHeight = imgRect.height / zoom;
+
+  // Scale factor between natural and displayed
+  const scaleX = naturalWidth / displayedWidth;
+  const scaleY = naturalHeight / displayedHeight;
+
+  // Center of the crop circle in the wrapper
+  const cropCenterX = wrapperRect.width / 2;
+  const cropCenterY = wrapperRect.height / 2;
+
+  // Image position relative to wrapper
+  const imgX = imgRect.left - wrapperRect.left;
+  const imgY = imgRect.top - wrapperRect.top;
+
+  // Crop center in image coordinates
+  const imgCropCenterX = (cropCenterX - imgX) / zoom;
+  const imgCropCenterY = (cropCenterY - imgY) / zoom;
+
+  // Crop radius in image coordinates (the visible circle is about 240px diameter)
+  const cropRadius = 120 / zoom;
+
+  // Source coordinates in natural image
+  const srcX = (imgCropCenterX - cropRadius) * scaleX;
+  const srcY = (imgCropCenterY - cropRadius) * scaleY;
+  const srcSize = cropRadius * 2 * Math.max(scaleX, scaleY);
+
+  // Draw circular crop
+  ctx.beginPath();
+  ctx.arc(outputSize / 2, outputSize / 2, outputSize / 2, 0, Math.PI * 2);
+  ctx.closePath();
+  ctx.clip();
+
+  // Draw the cropped portion
+  ctx.drawImage(
+    editorImage,
+    Math.max(0, srcX),
+    Math.max(0, srcY),
+    srcSize,
+    srcSize,
+    0,
+    0,
+    outputSize,
+    outputSize
+  );
+
+  // Save as JPEG
+  person.photo = canvas.toDataURL('image/jpeg', 0.9);
+
+  closePhotoModal();
+  renderTree(); // Update tree card avatar
+  openProfilePanel(photoModalState.personId);
+}
+
+/**
+ * Delete the current photo
+ */
+function deletePhoto() {
+  const person = getPersonById(photoModalState.personId);
+  if (!person) return;
+
+  delete person.photo;
+  closePhotoModal();
+  renderTree(); // Update tree card avatar
+  openProfilePanel(photoModalState.personId);
+}
+
+/**
+ * Close the photo modal
+ */
+function closePhotoModal() {
+  photoModal.classList.remove('visible');
+  photoModalState.originalImage = null;
+  photoModalState.isDragging = false;
+}
+
+// ============================================
+// PHOTO GALLERY - Multiple photos section
+// ============================================
+
+/**
+ * Add a photo to the gallery
+ */
+function addPhotoToGallery(personId, file) {
+  const person = getPersonById(personId);
+  if (!person) return;
+
+  // Validate file type
+  if (!file.type.startsWith('image/')) {
+    alert('Please select an image file.');
+    return;
+  }
+
+  // Limit file size (5MB)
+  const maxSize = 5 * 1024 * 1024;
+  if (file.size > maxSize) {
+    alert('Image is too large. Please select an image under 5MB.');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      // Resize to max 800px for storage efficiency
+      const maxDimension = 800;
+      let { width, height } = img;
+
+      if (width > maxDimension || height > maxDimension) {
+        if (width > height) {
+          height = (height / width) * maxDimension;
+          width = maxDimension;
+        } else {
+          width = (width / height) * maxDimension;
+          height = maxDimension;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      const resizedPhoto = canvas.toDataURL('image/jpeg', 0.85);
+
+      // Initialize photos array if needed
+      if (!person.photos) {
+        person.photos = [];
+      }
+      person.photos.push(resizedPhoto);
+
+      // Refresh panel
+      openProfilePanel(personId);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+/**
+ * Remove a photo from the gallery
+ */
+function removePhotoFromGallery(personId, index) {
+  const person = getPersonById(personId);
+  if (!person || !person.photos) return;
+
+  person.photos.splice(index, 1);
+  openProfilePanel(personId);
+}
+
+/**
+ * Open photo viewer lightbox
+ */
+function openPhotoViewer(personId, index) {
+  const person = getPersonById(personId);
+  if (!person || !person.photos || !person.photos[index]) return;
+
+  // Create lightbox
+  const lightbox = document.createElement('div');
+  lightbox.className = 'photo-lightbox';
+  lightbox.innerHTML = `
+    <div class="photo-lightbox-backdrop"></div>
+    <div class="photo-lightbox-content">
+      <button class="photo-lightbox-close" title="Close">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 6L6 18M6 6l12 12"/>
+        </svg>
+      </button>
+      ${person.photos.length > 1 ? `
+        <button class="photo-lightbox-nav photo-lightbox-prev" title="Previous">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 18l-6-6 6-6"/>
+          </svg>
+        </button>
+        <button class="photo-lightbox-nav photo-lightbox-next" title="Next">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 18l6-6-6-6"/>
+          </svg>
+        </button>
+      ` : ''}
+      <img class="photo-lightbox-image" src="${person.photos[index]}" alt="Photo">
+      <div class="photo-lightbox-counter">${index + 1} / ${person.photos.length}</div>
+    </div>
+  `;
+  document.body.appendChild(lightbox);
+
+  let currentIndex = index;
+
+  const updateImage = () => {
+    lightbox.querySelector('.photo-lightbox-image').src = person.photos[currentIndex];
+    lightbox.querySelector('.photo-lightbox-counter').textContent = `${currentIndex + 1} / ${person.photos.length}`;
+  };
+
+  const closeLightbox = () => {
+    lightbox.classList.remove('visible');
+    setTimeout(() => lightbox.remove(), 200);
+  };
+
+  // Event listeners
+  lightbox.querySelector('.photo-lightbox-backdrop').addEventListener('click', closeLightbox);
+  lightbox.querySelector('.photo-lightbox-close').addEventListener('click', closeLightbox);
+
+  const prevBtn = lightbox.querySelector('.photo-lightbox-prev');
+  const nextBtn = lightbox.querySelector('.photo-lightbox-next');
+
+  if (prevBtn) {
+    prevBtn.addEventListener('click', () => {
+      currentIndex = (currentIndex - 1 + person.photos.length) % person.photos.length;
+      updateImage();
+    });
+  }
+
+  if (nextBtn) {
+    nextBtn.addEventListener('click', () => {
+      currentIndex = (currentIndex + 1) % person.photos.length;
+      updateImage();
+    });
+  }
+
+  // Keyboard navigation
+  const handleKeydown = (e) => {
+    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'ArrowLeft' && prevBtn) {
+      currentIndex = (currentIndex - 1 + person.photos.length) % person.photos.length;
+      updateImage();
+    }
+    if (e.key === 'ArrowRight' && nextBtn) {
+      currentIndex = (currentIndex + 1) % person.photos.length;
+      updateImage();
+    }
+  };
+  document.addEventListener('keydown', handleKeydown);
+
+  // Clean up on close
+  const originalRemove = lightbox.remove.bind(lightbox);
+  lightbox.remove = () => {
+    document.removeEventListener('keydown', handleKeydown);
+    originalRemove();
+  };
+
+  // Animate in
+  requestAnimationFrame(() => {
+    lightbox.classList.add('visible');
+  });
+}
+
+/**
+ * Navigate to a profile while preserving history (for back navigation)
+ */
+function navigateToProfile(personId) {
+  // Push current profile to history stack
+  const currentId = profilePanel.dataset.personId;
+  if (currentId) {
+    profileHistory.push(currentId);
+  }
+  openProfilePanel(personId);
+}
+
+/**
+ * Go back to the previous profile
+ */
+function goBackProfile() {
+  if (profileHistory.length === 0) return;
+
+  const previousId = profileHistory.pop();
+  openProfilePanel(previousId);
+}
+
 /**
  * Close the profile panel
  */
 function closeProfilePanel() {
   if (profileOverlay) profileOverlay.classList.remove('visible');
-  if (profilePanel) profilePanel.classList.remove('visible');
+  if (profilePanel) {
+    profilePanel.classList.remove('visible');
+    // Clean up paste handler
+    if (profilePanel._pasteHandler) {
+      document.removeEventListener('paste', profilePanel._pasteHandler);
+      profilePanel._pasteHandler = null;
+    }
+  }
+  profileHistory = []; // Clear history when closing
   document.removeEventListener('keydown', handleProfileEscape);
 }
 
@@ -2643,6 +3456,7 @@ function initDragToScroll() {
  */
 function init() {
   createProfilePanel();
+  createPhotoModal();
   renderTree();
   initTreeControls();
   initDragToScroll();

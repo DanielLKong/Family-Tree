@@ -9,6 +9,8 @@
   - birthOrder: number for sorting siblings (lower = older)
 
   Optional fields (for profiles):
+  - photo: base64 data URL of profile picture (resized to max 400px, circular crop)
+  - photos: array of base64 data URLs for additional photos gallery
   - alsoCalled: array of nicknames/relationship names (e.g., ["Grandpa", "Pop Pop"])
   - birthDate: { year, month, day } - all optional, allows partial dates
   - deathDate: { year, month, day } - all optional, only shown if exists
