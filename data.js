@@ -23,6 +23,10 @@
 */
 
 const familyData = {
+  // Header info
+  title: "Johnson",
+  tagline: "Three Generations",
+
   // The root generation (siblings at the top of the tree)
   rootPersonIds: ["robert-1"],
 

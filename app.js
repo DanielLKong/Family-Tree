@@ -3448,6 +3448,108 @@ function initDragToScroll() {
 }
 
 // ============================================
+// EDITABLE HEADER
+// ============================================
+
+/**
+ * Initialize editable header fields
+ */
+function initEditableHeader() {
+  const headerTitle = document.querySelector('.header-title');
+  const headerTagline = document.querySelector('.header-tagline');
+
+  // Set initial values from familyData
+  if (headerTitle) {
+    headerTitle.textContent = familyData.title || 'Family Name';
+  }
+  if (headerTagline) {
+    headerTagline.textContent = familyData.tagline || 'Add a tagline...';
+  }
+
+  // Set browser tab title
+  if (familyData.title) {
+    document.title = familyData.title + ' Family Tree';
+  }
+
+  // Make fields editable on click
+  document.querySelectorAll('.header .editable').forEach(el => {
+    el.addEventListener('click', () => startEditingHeader(el));
+  });
+}
+
+/**
+ * Start editing a header field
+ */
+function startEditingHeader(element) {
+  if (element.classList.contains('editing')) return;
+
+  const field = element.dataset.field;
+  const currentValue = familyData[field] || '';
+  const isTagline = field === 'tagline';
+
+  element.classList.add('editing');
+
+  // Create input or textarea
+  const input = document.createElement(isTagline ? 'textarea' : 'input');
+  if (!isTagline) input.type = 'text';
+  input.value = currentValue;
+  input.placeholder = field === 'title' ? 'Family Name' : 'Add a tagline...';
+
+  // For textarea, auto-resize
+  if (isTagline) {
+    input.rows = 1;
+    const autoResize = () => {
+      input.style.height = 'auto';
+      input.style.height = input.scrollHeight + 'px';
+    };
+    input.addEventListener('input', autoResize);
+    setTimeout(autoResize, 0);
+  }
+
+  // Replace text with input
+  element.textContent = '';
+  element.appendChild(input);
+
+  // Focus and select all
+  input.focus();
+  input.select();
+
+  // Handle save on blur or Enter (for title) / Cmd+Enter (for tagline)
+  const saveEdit = () => {
+    const newValue = input.value.trim();
+    familyData[field] = newValue;
+    element.classList.remove('editing');
+    element.textContent = newValue || input.placeholder;
+
+    // Update browser tab title when family name changes
+    if (field === 'title' && newValue) {
+      document.title = newValue + ' Family Tree';
+    }
+  };
+
+  // Handle cancel on Escape
+  const cancelEdit = () => {
+    element.classList.remove('editing');
+    element.textContent = currentValue || input.placeholder;
+  };
+
+  input.addEventListener('blur', saveEdit);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !isTagline) {
+      e.preventDefault();
+      input.blur();
+    } else if (e.key === 'Enter' && isTagline && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      input.blur();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      input.removeEventListener('blur', saveEdit);
+      cancelEdit();
+    }
+  });
+}
+
+// ============================================
 // INITIALIZATION
 // ============================================
 
@@ -3457,6 +3559,7 @@ function initDragToScroll() {
 function init() {
   createProfilePanel();
   createPhotoModal();
+  initEditableHeader();
   renderTree();
   initTreeControls();
   initDragToScroll();

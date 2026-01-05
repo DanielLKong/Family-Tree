@@ -98,11 +98,58 @@ body {
     color: var(--text-primary);
     line-height: 1;
     margin-bottom: var(--space-sm);
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
-.header-meta {
+.header-tagline {
     font-size: 14px;
     color: var(--text-secondary);
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Editable header fields */
+.header .editable {
+    cursor: pointer;
+    border-radius: 6px;
+    padding: 4px 12px;
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.header .editable:hover {
+    background: rgba(232, 213, 202, 0.3);
+}
+
+.header .editable.editing {
+    background: #fff;
+    box-shadow: 0 0 0 2px var(--card-border), 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Input styling for editable fields */
+.header .editable input,
+.header .editable textarea {
+    font: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+    background: transparent;
+    border: none;
+    outline: none;
+    text-align: center;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    resize: none;
+    overflow: hidden;
+    line-height: inherit;
+}
+
+.header-title input {
+    font-family: var(--font-display);
 }
 
 /* ==========================================

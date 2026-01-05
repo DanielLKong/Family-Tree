@@ -72,20 +72,48 @@
 - [x] Collapsible branches with expand/collapse all
 - [x] Zoomable interface (default 100% = comfortable view)
 - [x] Profile side panel (click name to open, shows family connections)
+- [x] Profile content fields (photo, basics, family links, about section)
+- [x] LinkedIn-style photo modal with crop/zoom
+- [x] Photos gallery with drag & drop, paste, lightbox viewer
+- [x] Profile navigation (click family member → opens their profile with back button)
+- [x] Editable header (click to edit family name and tagline)
 
 ### Current Sprint - Next Up
-1. [~] **Profile content fields** - See Section 6 for full design. Header (photo + name), Basics (also called, born, died, age, location), Family (clickable links), About (occupation, education, hobbies, notes). **STATUS: Implemented, needs review/testing.**
-2. [ ] **Name toggle** - Option to show nickname instead of full name on tree cards
-3. [ ] **Editable header** - Click to edit family name and tagline
-4. [ ] **Local Storage** - Auto-save tree data to browser
-5. [ ] **Export/Import JSON** - Download/upload tree as file for backup
+1. [ ] **Name toggle** - Option to show nickname instead of full name on tree cards
+2. [ ] **Local Storage** - Auto-save tree data to browser
+3. [ ] **Export/Import JSON** - Download/upload tree as file for backup
 
-### Future (Phase 2)
+### Future (Phase 2) - Web
 - [ ] User accounts and login (Firebase or similar)
 - [ ] Share tree with family members
 - [ ] Photo uploads to cloud
 - [ ] Multiple family trees per account
 - [ ] Real-time collaboration
+
+### Future (Phase 2) - Mobile App
+
+**Concept: Family Reunion Companion**
+
+The web version is the "power tool" for building and editing the tree. The mobile app is a "consumption" tool for using it at family events.
+
+**Quick Reference Mode:**
+- All branches collapsed by default (like Slack's org chart)
+- Simple card grid - tap to see full profile
+- Big photo, key info at a glance
+- Swipe between people in a generation
+- Search/filter by name or relationship
+
+**Flashcard Mode (for learning family):**
+- **Photo → Name**: See face, guess who it is
+- **Name → Photo**: See name, picture their face
+- **Profile Quiz**: "What does Uncle Mike do for work?"
+- Track progress, focus on people you don't know well
+- Great for kids or new family members (spouses joining the family)
+
+**Other mobile-friendly features:**
+- "Who's here?" - check off who's at the reunion
+- Quick add photo - snap a pic, tag a person
+- Relationship path - "How am I related to Noah?"
 
 ---
 
@@ -191,13 +219,14 @@ Three-column picker allowing partial dates:
 
 ## Section 10: Action Items for Next Session
 
-- [ ] **Review profile panel changes** - Test all the new profile features:
-  - Also called field (expanding list editor)
-  - Born/Died date picker with flexible partial dates
-  - Age calculation (living vs deceased, approximate with ~)
-  - Location field (expanding list for multiple locations)
-  - About section fields (occupation, education, hobbies, notes)
-  - Add field dropdown for adding new fields
-  - Tab navigation between fields
-  - Death date validation (must be after birth date)
+### Immediate Next Steps
+1. [ ] **Name toggle** - Add option to show nickname instead of full name on tree cards (uses "Also Called" field)
+2. [ ] **Local Storage** - Auto-save all tree data to browser so changes persist between sessions
+3. [ ] **Export/Import JSON** - Download tree as a file for backup, upload to restore
+
+### Testing Checklist (if needed)
+- [ ] Profile panel features (also called, dates, locations, about fields)
+- [ ] Photo modal (upload, crop, zoom, delete)
+- [ ] Photos gallery (multiple upload, drag & drop, paste, lightbox)
+- [ ] Editable header (click to edit title/tagline)
 
