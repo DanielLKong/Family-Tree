@@ -215,10 +215,25 @@ function renderPerson(personId, options = {}) {
   // Build spouse HTML if exists
   let spouseHtml = '';
   if (spouse) {
+    // Build spouse nickname cycler if spouse has nicknames
+    let spouseNicknameHtml = '';
+    if (spouse.alsoCalled && spouse.alsoCalled.length > 0) {
+      const showArrows = spouse.alsoCalled.length > 1;
+      spouseNicknameHtml = `
+        <div class="nickname-cycler spouse-nickname" data-person-id="${spouse.id}" data-index="0">
+          <button class="nickname-arrow nickname-prev" title="Previous nickname" ${!showArrows ? 'style="visibility:hidden"' : ''}>‹</button>
+          <span class="nickname-text">${spouse.alsoCalled[0]}</span>
+          <button class="nickname-arrow nickname-next" title="Next nickname" ${!showArrows ? 'style="visibility:hidden"' : ''}>›</button>
+        </div>
+      `;
+    }
     spouseHtml = `
       <div class="spouse-inline">
         <span class="spouse-label">Spouse</span>
-        <span class="spouse-name">${spouse.name}</span>
+        <div class="spouse-info">
+          <span class="spouse-name" data-spouse-id="${spouse.id}">${spouse.name}</span>
+          ${spouseNicknameHtml}
+        </div>
       </div>
     `;
   }
@@ -251,6 +266,19 @@ function renderPerson(personId, options = {}) {
     ? `<img src="${person.photo}" alt="${person.name}" class="avatar-img">`
     : `<span>${initials}</span>`;
 
+  // Build nickname cycler HTML if person has nicknames
+  let nicknameHtml = '';
+  if (person.alsoCalled && person.alsoCalled.length > 0) {
+    const showArrows = person.alsoCalled.length > 1;
+    nicknameHtml = `
+      <div class="nickname-cycler" data-person-id="${person.id}" data-index="0">
+        <button class="nickname-arrow nickname-prev" title="Previous nickname" ${!showArrows ? 'style="visibility:hidden"' : ''}>‹</button>
+        <span class="nickname-text">${person.alsoCalled[0]}</span>
+        <button class="nickname-arrow nickname-next" title="Next nickname" ${!showArrows ? 'style="visibility:hidden"' : ''}>›</button>
+      </div>
+    `;
+  }
+
   return `
     <article class="person-card ${collapsed ? 'is-collapsed' : ''}" tabindex="0" data-person-id="${person.id}">
       ${menuBtn}
@@ -260,7 +288,7 @@ function renderPerson(personId, options = {}) {
         </div>
         <div class="info">
           <h2 class="name">${person.name}</h2>
-          ${maidenHtml}
+          ${nicknameHtml}
         </div>
       </div>
       ${spouseHtml}
@@ -477,6 +505,16 @@ function renderTree() {
   // Add click handlers for person names (opens profile)
   document.querySelectorAll('.person-card .name').forEach(name => {
     name.addEventListener('click', handleNameClick);
+  });
+
+  // Add click handlers for spouse names (opens their profile)
+  document.querySelectorAll('.person-card .spouse-name').forEach(name => {
+    name.addEventListener('click', handleSpouseNameClick);
+  });
+
+  // Add click handlers for nickname arrows
+  document.querySelectorAll('.nickname-arrow').forEach(arrow => {
+    arrow.addEventListener('click', handleNicknameArrowClick);
   });
 }
 
@@ -3321,6 +3359,48 @@ function handleNameClick(event) {
   }
 }
 
+/**
+ * Handle click on spouse name (opens their profile)
+ */
+function handleSpouseNameClick(event) {
+  event.stopPropagation();
+  const spouseId = event.target.dataset.spouseId;
+  if (spouseId) {
+    openProfilePanel(spouseId);
+  }
+}
+
+/**
+ * Handle click on nickname arrow (cycles through nicknames)
+ */
+function handleNicknameArrowClick(event) {
+  event.stopPropagation();
+  const arrow = event.target;
+  const cycler = arrow.closest('.nickname-cycler');
+  if (!cycler) return;
+
+  const personId = cycler.dataset.personId;
+  const person = getPersonById(personId);
+  if (!person || !person.alsoCalled || person.alsoCalled.length === 0) return;
+
+  const nicknames = person.alsoCalled;
+  let currentIndex = parseInt(cycler.dataset.index) || 0;
+
+  // Determine direction
+  if (arrow.classList.contains('nickname-next')) {
+    currentIndex = (currentIndex + 1) % nicknames.length;
+  } else {
+    currentIndex = (currentIndex - 1 + nicknames.length) % nicknames.length;
+  }
+
+  // Update the display
+  cycler.dataset.index = currentIndex;
+  const textEl = cycler.querySelector('.nickname-text');
+  if (textEl) {
+    textEl.textContent = nicknames[currentIndex];
+  }
+}
+
 // ============================================
 // ZOOM & PAN
 // ============================================
@@ -3404,6 +3484,25 @@ function initTreeControls() {
 
   if (expandAllBtn) {
     expandAllBtn.addEventListener('click', expandAll);
+  }
+
+  // Nickname toggle control
+  const nicknameToggleBtn = document.querySelector('.nickname-toggle');
+  if (nicknameToggleBtn) {
+    nicknameToggleBtn.addEventListener('click', toggleNicknames);
+  }
+}
+
+/**
+ * Toggle nickname visibility on all cards
+ */
+function toggleNicknames() {
+  const tree = document.querySelector('.tree');
+  const btn = document.querySelector('.nickname-toggle');
+
+  if (tree && btn) {
+    tree.classList.toggle('hide-nicknames');
+    btn.classList.toggle('active');
   }
 }
 

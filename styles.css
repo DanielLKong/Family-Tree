@@ -39,7 +39,7 @@
 
     /* Consistent card sizing */
     --card-width: 220px;
-    --card-padding: 20px;
+    --card-padding: 16px;
     --avatar-size: 44px;
     --line-weight: 2px;
     --connector-height: 40px;
@@ -498,8 +498,9 @@ body {
 
 .card-main {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: var(--space-md);
+    gap: 6px;
 }
 
 /* Avatar - consistent size */
@@ -541,10 +542,11 @@ body {
     font-size: 14px;
 }
 
-/* Info */
+/* Info - centered */
 .info {
-    flex: 1;
+    text-align: center;
     min-width: 0;
+    width: 100%;
 }
 
 .name {
@@ -553,7 +555,7 @@ body {
     font-weight: 600;
     line-height: 1.3;
     color: var(--text-primary);
-    margin-bottom: 2px;
+    margin-bottom: 0;
 }
 
 /* All names same size */
@@ -575,15 +577,60 @@ body {
 }
 
 /* ==========================================
+   Nickname Cycler (inside card)
+   ========================================== */
+.nickname-cycler {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin-top: 2px;
+    width: 100%;
+}
+
+.nickname-text {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-style: italic;
+    text-align: center;
+    min-width: 80px;
+}
+
+.nickname-arrow {
+    background: none;
+    border: none;
+    padding: 0 4px;
+    font-size: 14px;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    line-height: 1;
+    opacity: 0.5;
+    transition: opacity 0.15s ease, color 0.15s ease;
+    flex-shrink: 0;
+}
+
+.nickname-arrow:hover {
+    opacity: 1;
+    color: var(--text-secondary);
+}
+
+/* Hide nicknames when toggle is off */
+.tree.hide-nicknames .nickname-cycler {
+    display: none;
+}
+
+/* ==========================================
    Spouse Inline (inside card)
    ========================================== */
 .spouse-inline {
-    margin-top: var(--space-md);
-    padding-top: var(--space-md);
+    margin-top: 10px;
+    padding-top: 10px;
     border-top: 1px solid var(--card-border);
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: var(--space-sm);
+    gap: 2px;
+    width: 100%;
 }
 
 .spouse-inline .spouse-label {
@@ -594,11 +641,20 @@ body {
     color: var(--text-tertiary);
 }
 
+.spouse-inline .spouse-info {
+    text-align: center;
+    width: 100%;
+}
+
 .spouse-inline .spouse-name {
     font-family: var(--font-display);
     font-size: 14px;
-    font-weight: 500;
-    color: var(--text-secondary);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.spouse-inline .spouse-nickname {
+    justify-content: center;
 }
 
 /* ==========================================
@@ -684,6 +740,23 @@ body {
     width: auto;
     padding: 0 var(--space-md);
     font-size: 13px;
+}
+
+.control-btn.nickname-toggle {
+    width: auto;
+    padding: 0 var(--space-md);
+    font-size: 13px;
+}
+
+.control-btn.nickname-toggle.active {
+    background: var(--spouse);
+    border-color: var(--spouse);
+    color: white;
+}
+
+.control-btn.nickname-toggle.active:hover {
+    background: #c4a07a;
+    border-color: #c4a07a;
 }
 
 .control-divider {
@@ -1880,6 +1953,16 @@ body {
 }
 
 .person-card .name:hover {
+    color: var(--spouse);
+}
+
+/* Make spouse name clickable in cards */
+.person-card .spouse-name {
+    cursor: pointer;
+    transition: color 0.15s ease;
+}
+
+.person-card .spouse-name:hover {
     color: var(--spouse);
 }
 
