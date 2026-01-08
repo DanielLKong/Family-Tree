@@ -3,15 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Johnson Family Tree</title>
+    <title>Family Tree</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <!-- Trees Sidebar -->
+    <aside class="trees-sidebar" id="trees-sidebar">
+        <div class="sidebar-header">
+            <h2 class="sidebar-title">My Trees</h2>
+            <button class="sidebar-close" id="sidebar-close">&times;</button>
+        </div>
+        <div class="sidebar-content">
+            <ul class="trees-list" id="trees-list">
+                <!-- Tree items rendered dynamically -->
+            </ul>
+        </div>
+        <div class="sidebar-footer">
+            <button class="new-tree-btn" id="new-tree-btn">
+                <span class="plus-icon">+</span>
+                <span>New Tree</span>
+            </button>
+        </div>
+    </aside>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
     <div class="container">
         <header class="header">
+            <button class="sidebar-toggle" id="sidebar-toggle" title="My Trees">
+                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+            </button>
             <span class="header-label">Family Tree</span>
             <h1 class="header-title editable" data-field="title"></h1>
             <p class="header-tagline editable" data-field="tagline"></p>

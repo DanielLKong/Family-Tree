@@ -152,6 +152,354 @@ body {
     font-family: var(--font-display);
 }
 
+/* Sidebar Toggle Button */
+.sidebar-toggle {
+    position: fixed;
+    left: var(--space-lg);
+    top: var(--space-lg);
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    border: 1px solid var(--card-border);
+    background: white;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    z-index: 100;
+}
+
+.sidebar-toggle:hover {
+    background: var(--card-bg);
+    border-color: var(--text-tertiary);
+    color: var(--text-primary);
+}
+
+/* ==========================================
+   Trees Sidebar
+   ========================================== */
+
+/* Sidebar Overlay */
+.sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(26, 26, 26, 0.25);
+    backdrop-filter: blur(2px);
+    z-index: 800;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.sidebar-overlay.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Sidebar Panel */
+.trees-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 320px;
+    max-width: 85vw;
+    background: linear-gradient(180deg, #fffcfa 0%, #fff 100%);
+    box-shadow: 8px 0 40px rgba(0, 0, 0, 0.12);
+    z-index: 850;
+    transform: translateX(-100%);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+}
+
+.trees-sidebar.visible {
+    transform: translateX(0);
+}
+
+/* Sidebar Header */
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-lg);
+    border-bottom: 1px solid var(--card-border);
+    background: var(--card-bg);
+}
+
+.sidebar-title {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.sidebar-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: var(--text-tertiary);
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.sidebar-close:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--text-primary);
+}
+
+/* Sidebar Content */
+.sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-md);
+}
+
+/* Trees List */
+.trees-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.tree-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    margin-bottom: var(--space-xs);
+    background: white;
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.tree-item:hover {
+    background: var(--card-bg);
+    border-color: var(--text-tertiary);
+    transform: translateX(4px);
+}
+
+.tree-item.active {
+    background: var(--card-bg);
+    border-color: var(--spouse);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.tree-item-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #f5ebe6 0%, #ede4dd 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.tree-item-icon svg {
+    width: 20px;
+    height: 20px;
+    stroke: var(--text-secondary);
+}
+
+.tree-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.tree-item-name {
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tree-item-meta {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-top: 2px;
+}
+
+.tree-item-actions {
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.tree-item:hover .tree-item-actions {
+    opacity: 1;
+}
+
+.tree-item-delete {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.tree-item-delete:hover {
+    background: #fee;
+    color: #c53030;
+}
+
+/* Empty state */
+.trees-empty-state {
+    text-align: center;
+    padding: var(--space-xl) var(--space-md);
+    color: var(--text-tertiary);
+}
+
+.trees-empty-state p {
+    margin: 0;
+}
+
+.trees-empty-hint {
+    font-size: 13px;
+    margin-top: var(--space-xs) !important;
+}
+
+/* Sidebar Footer */
+.sidebar-footer {
+    padding: var(--space-md);
+    border-top: 1px solid var(--card-border);
+}
+
+.new-tree-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.new-tree-btn:hover {
+    background: var(--card-hover);
+    border-color: var(--text-tertiary);
+}
+
+.new-tree-btn .plus-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 400;
+}
+
+/* Delete Confirmation Modal */
+.delete-tree-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.delete-tree-modal.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.delete-tree-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.delete-tree-modal-content {
+    position: relative;
+    background: white;
+    border-radius: 12px;
+    padding: var(--space-lg);
+    max-width: 360px;
+    width: 90%;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.delete-tree-modal h3 {
+    font-family: var(--font-display);
+    font-size: 18px;
+    margin: 0 0 var(--space-sm) 0;
+}
+
+.delete-tree-modal p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin: 0 0 var(--space-lg) 0;
+}
+
+.delete-tree-modal-actions {
+    display: flex;
+    gap: var(--space-sm);
+    justify-content: flex-end;
+}
+
+.delete-tree-modal-actions button {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.delete-tree-cancel {
+    background: white;
+    border: 1px solid var(--card-border);
+    color: var(--text-secondary);
+}
+
+.delete-tree-cancel:hover {
+    background: var(--bg);
+}
+
+.delete-tree-confirm {
+    background: #c53030;
+    border: none;
+    color: white;
+}
+
+.delete-tree-confirm:hover {
+    background: #9b2c2c;
+}
+
 /* ==========================================
    Tree Structure
    ========================================== */

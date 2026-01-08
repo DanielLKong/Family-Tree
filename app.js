@@ -6,6 +6,467 @@
 */
 
 // ============================================
+// MULTI-TREE STORAGE & PERSISTENCE
+// ============================================
+
+const STORAGE_KEY = 'familyTreeData';
+const STORAGE_VERSION = 2;
+
+// Global state for multi-tree management
+let allTreesData = null;
+let activeTreeId = null;
+
+/**
+ * Generate unique tree ID
+ */
+function generateTreeId() {
+  return 'tree-' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+}
+
+/**
+ * Migrate v1 data to v2 structure
+ */
+function migrateToV2(v1Data) {
+  const treeId = generateTreeId();
+  const now = new Date().toISOString();
+
+  return {
+    version: 2,
+    activeTreeId: treeId,
+    trees: {
+      [treeId]: {
+        id: treeId,
+        ...v1Data.data,
+        createdAt: v1Data.savedAt || now,
+        updatedAt: v1Data.savedAt || now
+      }
+    }
+  };
+}
+
+/**
+ * Load all trees data from localStorage
+ */
+function loadAllTreesData() {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+
+    if (!stored) {
+      // No saved data - create structure with default tree from data.js
+      const defaultTreeId = generateTreeId();
+      const now = new Date().toISOString();
+
+      allTreesData = {
+        version: 2,
+        activeTreeId: defaultTreeId,
+        trees: {
+          [defaultTreeId]: {
+            id: defaultTreeId,
+            title: familyData.title,
+            tagline: familyData.tagline,
+            rootPersonIds: familyData.rootPersonIds,
+            collapsedIds: familyData.collapsedIds || [],
+            people: familyData.people,
+            createdAt: now,
+            updatedAt: now
+          }
+        }
+      };
+      activeTreeId = defaultTreeId;
+      saveAllTreesData();
+      return true;
+    }
+
+    const parsed = JSON.parse(stored);
+
+    // Check version and migrate if needed
+    if (!parsed.version || parsed.version === 1) {
+      console.log('Migrating from v1 to v2 storage format');
+      allTreesData = migrateToV2(parsed);
+      activeTreeId = allTreesData.activeTreeId;
+      saveAllTreesData();
+    } else {
+      allTreesData = parsed;
+      activeTreeId = parsed.activeTreeId;
+    }
+
+    // Load active tree into familyData (if there is one)
+    if (activeTreeId && allTreesData.trees[activeTreeId]) {
+      loadTreeIntoFamilyData(activeTreeId);
+    } else if (Object.keys(allTreesData.trees).length > 0) {
+      // Active tree not found, load first available
+      activeTreeId = Object.keys(allTreesData.trees)[0];
+      allTreesData.activeTreeId = activeTreeId;
+      loadTreeIntoFamilyData(activeTreeId);
+    } else {
+      // No trees at all - set up empty state
+      activeTreeId = null;
+      allTreesData.activeTreeId = null;
+      clearFamilyData();
+    }
+
+    return true;
+  } catch (e) {
+    console.error('Failed to load trees data:', e);
+    return false;
+  }
+}
+
+/**
+ * Save all trees data to localStorage
+ */
+function saveAllTreesData() {
+  try {
+    const json = JSON.stringify(allTreesData);
+    const sizeInMB = new Blob([json]).size / (1024 * 1024);
+
+    if (sizeInMB > 4.5) {
+      console.warn('Data approaching localStorage limit:', sizeInMB.toFixed(2), 'MB');
+    }
+
+    localStorage.setItem(STORAGE_KEY, json);
+  } catch (e) {
+    console.error('Failed to save to localStorage:', e);
+    if (e.name === 'QuotaExceededError') {
+      alert('Storage is full. Please delete some trees or photos.');
+    }
+  }
+}
+
+/**
+ * Load a specific tree into familyData (the working object)
+ */
+function loadTreeIntoFamilyData(treeId) {
+  const tree = allTreesData.trees[treeId];
+  if (!tree) return false;
+
+  // Clear and replace familyData contents
+  Object.keys(familyData).forEach(key => delete familyData[key]);
+  Object.assign(familyData, {
+    title: tree.title,
+    tagline: tree.tagline,
+    rootPersonIds: tree.rootPersonIds || [],
+    collapsedIds: tree.collapsedIds || [],
+    people: tree.people || {}
+  });
+
+  activeTreeId = treeId;
+  allTreesData.activeTreeId = treeId;
+  return true;
+}
+
+/**
+ * Clear familyData for empty state
+ */
+function clearFamilyData() {
+  Object.keys(familyData).forEach(key => delete familyData[key]);
+  Object.assign(familyData, {
+    title: '',
+    tagline: '',
+    rootPersonIds: [],
+    collapsedIds: [],
+    people: {}
+  });
+}
+
+/**
+ * Save current familyData back to its tree in allTreesData
+ */
+function saveCurrentTreeData() {
+  if (!activeTreeId || !allTreesData.trees[activeTreeId]) return;
+
+  const tree = allTreesData.trees[activeTreeId];
+  tree.title = familyData.title;
+  tree.tagline = familyData.tagline;
+  tree.rootPersonIds = familyData.rootPersonIds;
+  tree.collapsedIds = familyData.collapsedIds;
+  tree.people = familyData.people;
+  tree.updatedAt = new Date().toISOString();
+}
+
+/**
+ * Save to localStorage (called throughout the app)
+ */
+function saveToLocalStorage() {
+  if (activeTreeId) {
+    saveCurrentTreeData();
+  }
+  saveAllTreesData();
+}
+
+/**
+ * Switch to a different tree
+ */
+function switchToTree(treeId) {
+  if (treeId === activeTreeId) {
+    closeSidebar();
+    return;
+  }
+
+  // Save current tree first
+  if (activeTreeId) {
+    saveCurrentTreeData();
+  }
+
+  // Load new tree
+  loadTreeIntoFamilyData(treeId);
+  saveAllTreesData();
+
+  // Refresh UI
+  initEditableHeader();
+  renderTree();
+  closeSidebar();
+}
+
+/**
+ * Create a new empty tree
+ */
+function createNewTree() {
+  // Save current tree first
+  if (activeTreeId) {
+    saveCurrentTreeData();
+  }
+
+  const treeId = generateTreeId();
+  const now = new Date().toISOString();
+
+  allTreesData.trees[treeId] = {
+    id: treeId,
+    title: 'New Family',
+    tagline: 'Click to edit',
+    rootPersonIds: [],
+    collapsedIds: [],
+    people: {},
+    createdAt: now,
+    updatedAt: now
+  };
+
+  // Switch to new tree
+  loadTreeIntoFamilyData(treeId);
+  saveAllTreesData();
+
+  // Refresh UI
+  initEditableHeader();
+  renderTree();
+  renderTreesList();
+}
+
+/**
+ * Delete a tree
+ */
+function deleteTree(treeId) {
+  const tree = allTreesData.trees[treeId];
+  if (!tree) return;
+
+  delete allTreesData.trees[treeId];
+
+  const remainingIds = Object.keys(allTreesData.trees);
+
+  if (treeId === activeTreeId) {
+    // Deleted the active tree
+    if (remainingIds.length > 0) {
+      // Switch to another tree
+      loadTreeIntoFamilyData(remainingIds[0]);
+    } else {
+      // No trees left - clear everything
+      activeTreeId = null;
+      allTreesData.activeTreeId = null;
+      clearFamilyData();
+    }
+    initEditableHeader();
+    renderTree();
+  }
+
+  saveAllTreesData();
+  renderTreesList();
+  closeDeleteModal();
+}
+
+/**
+ * Get list of all trees sorted by updated date
+ */
+function getTreesList() {
+  return Object.values(allTreesData.trees)
+    .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+}
+
+// ============================================
+// SIDEBAR UI
+// ============================================
+
+let sidebarVisible = false;
+let deleteModalTreeId = null;
+
+/**
+ * Initialize sidebar
+ */
+function initSidebar() {
+  const toggle = document.getElementById('sidebar-toggle');
+  const close = document.getElementById('sidebar-close');
+  const overlay = document.getElementById('sidebar-overlay');
+  const newTreeBtn = document.getElementById('new-tree-btn');
+
+  if (toggle) toggle.addEventListener('click', openSidebar);
+  if (close) close.addEventListener('click', closeSidebar);
+  if (overlay) overlay.addEventListener('click', closeSidebar);
+  if (newTreeBtn) newTreeBtn.addEventListener('click', createNewTree);
+
+  // Keyboard: Escape to close sidebar
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && sidebarVisible) {
+      closeSidebar();
+    }
+  });
+}
+
+/**
+ * Open sidebar
+ */
+function openSidebar() {
+  const sidebar = document.getElementById('trees-sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+
+  if (sidebar) sidebar.classList.add('visible');
+  if (overlay) overlay.classList.add('visible');
+  sidebarVisible = true;
+
+  renderTreesList();
+}
+
+/**
+ * Close sidebar
+ */
+function closeSidebar() {
+  const sidebar = document.getElementById('trees-sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+
+  if (sidebar) sidebar.classList.remove('visible');
+  if (overlay) overlay.classList.remove('visible');
+  sidebarVisible = false;
+}
+
+/**
+ * Render the trees list in sidebar
+ */
+function renderTreesList() {
+  const listEl = document.getElementById('trees-list');
+  if (!listEl) return;
+
+  const trees = getTreesList();
+
+  if (trees.length === 0) {
+    listEl.innerHTML = `
+      <li class="trees-empty-state">
+        <p>No family trees yet</p>
+        <p class="trees-empty-hint">Click "New Tree" to get started</p>
+      </li>
+    `;
+    return;
+  }
+
+  listEl.innerHTML = trees.map(tree => {
+    const personCount = Object.keys(tree.people || {}).length;
+    const isActive = tree.id === activeTreeId;
+    const displayTitle = tree.title || 'Untitled';
+
+    return `
+      <li class="tree-item ${isActive ? 'active' : ''}" data-tree-id="${tree.id}">
+        <div class="tree-item-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5">
+            <path d="M12 3v18M5 8h14M7 13h10M9 18h6"/>
+          </svg>
+        </div>
+        <div class="tree-item-info">
+          <div class="tree-item-name">${escapeHtml(displayTitle)}</div>
+          <div class="tree-item-meta">${personCount} ${personCount === 1 ? 'person' : 'people'}</div>
+        </div>
+        <div class="tree-item-actions">
+          <button class="tree-item-delete" data-tree-id="${tree.id}" title="Delete tree">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2">
+              <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </svg>
+          </button>
+        </div>
+      </li>
+    `;
+  }).join('');
+
+  // Add click handlers
+  listEl.querySelectorAll('.tree-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      if (e.target.closest('.tree-item-delete')) return;
+      const treeId = item.dataset.treeId;
+      switchToTree(treeId);
+    });
+  });
+
+  listEl.querySelectorAll('.tree-item-delete').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const treeId = btn.dataset.treeId;
+      showDeleteModal(treeId);
+    });
+  });
+}
+
+/**
+ * Helper to escape HTML
+ */
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+/**
+ * Show delete confirmation modal
+ */
+function showDeleteModal(treeId) {
+  deleteModalTreeId = treeId;
+  const tree = allTreesData.trees[treeId];
+  const treeName = tree ? (tree.title || 'Untitled') : 'this tree';
+
+  // Create modal if doesn't exist
+  let modal = document.querySelector('.delete-tree-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.className = 'delete-tree-modal';
+    modal.innerHTML = `
+      <div class="delete-tree-modal-backdrop"></div>
+      <div class="delete-tree-modal-content">
+        <h3>Delete Tree?</h3>
+        <p class="delete-tree-message"></p>
+        <div class="delete-tree-modal-actions">
+          <button class="delete-tree-cancel">Cancel</button>
+          <button class="delete-tree-confirm">Delete</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    modal.querySelector('.delete-tree-modal-backdrop').addEventListener('click', closeDeleteModal);
+    modal.querySelector('.delete-tree-cancel').addEventListener('click', closeDeleteModal);
+    modal.querySelector('.delete-tree-confirm').addEventListener('click', () => {
+      deleteTree(deleteModalTreeId);
+    });
+  }
+
+  modal.querySelector('.delete-tree-message').textContent =
+    `Are you sure you want to delete "${treeName}"? This cannot be undone.`;
+
+  modal.classList.add('visible');
+}
+
+/**
+ * Close delete confirmation modal
+ */
+function closeDeleteModal() {
+  const modal = document.querySelector('.delete-tree-modal');
+  if (modal) modal.classList.remove('visible');
+  deleteModalTreeId = null;
+}
+
+// ============================================
 // DATA HELPERS
 // ============================================
 
@@ -516,6 +977,9 @@ function renderTree() {
   document.querySelectorAll('.nickname-arrow').forEach(arrow => {
     arrow.addEventListener('click', handleNicknameArrowClick);
   });
+
+  // Auto-save after any tree render
+  saveToLocalStorage();
 }
 
 /**
@@ -2172,6 +2636,7 @@ function showTextEditor(personId, field, element) {
   wrapper.querySelector('.profile-edit-save').addEventListener('click', () => {
     const newValue = input.value.trim();
     person[field] = newValue || null;
+    saveToLocalStorage();
     openProfilePanel(personId); // Refresh panel
   });
 
@@ -2218,6 +2683,7 @@ function showTextareaEditor(personId, field, element) {
   wrapper.querySelector('.profile-edit-save').addEventListener('click', () => {
     const newValue = textarea.value.trim();
     person[field] = newValue || null;
+    saveToLocalStorage();
     openProfilePanel(personId);
   });
 
@@ -2388,6 +2854,7 @@ function showDatePicker(personId, field, element) {
       person.deathDate = null;
     }
 
+    saveToLocalStorage();
     openProfilePanel(personId);
   });
 
@@ -2529,6 +2996,7 @@ function showExpandingListEditor(personId, field, element, placeholder, containe
 
     // Store as array, or null if empty
     person[field] = values.length > 0 ? values : null;
+    saveToLocalStorage();
     openProfilePanel(personId);
   });
 
@@ -3184,7 +3652,8 @@ function addPhotoToGallery(personId, file) {
       }
       person.photos.push(resizedPhoto);
 
-      // Refresh panel
+      // Save and refresh panel
+      saveToLocalStorage();
       openProfilePanel(personId);
     };
     img.src = e.target.result;
@@ -3200,6 +3669,7 @@ function removePhotoFromGallery(personId, index) {
   if (!person || !person.photos) return;
 
   person.photos.splice(index, 1);
+  saveToLocalStorage();
   openProfilePanel(personId);
 }
 
@@ -3617,6 +4087,7 @@ function startEditingHeader(element) {
   const saveEdit = () => {
     const newValue = input.value.trim();
     familyData[field] = newValue;
+    saveToLocalStorage();
     element.classList.remove('editing');
     element.textContent = newValue || input.placeholder;
 
@@ -3656,9 +4127,13 @@ function startEditingHeader(element) {
  * Initialize the app when DOM is ready
  */
 function init() {
+  // Load saved data first (handles multi-tree storage)
+  loadAllTreesData();
+
   createProfilePanel();
   createPhotoModal();
   initEditableHeader();
+  initSidebar();
   renderTree();
   initTreeControls();
   initDragToScroll();
