@@ -42,13 +42,23 @@
                 </svg>
             </button>
             <span class="header-label">Family Tree</span>
-            <button class="account-btn" id="account-btn" title="Account">
-                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2">
-                    <circle cx="12" cy="8" r="4"/>
-                    <path d="M4 20c0-4 4-6 8-6s8 2 8 6"/>
-                </svg>
-                <span class="account-btn-text" id="account-btn-text">Sign In</span>
-            </button>
+            <div class="account-wrapper">
+                <button class="account-btn" id="account-btn" title="Account">
+                    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2">
+                        <circle cx="12" cy="8" r="4"/>
+                        <path d="M4 20c0-4 4-6 8-6s8 2 8 6"/>
+                    </svg>
+                    <span class="account-btn-text" id="account-btn-text">Sign In</span>
+                </button>
+                <div class="account-dropdown" id="account-dropdown">
+                    <div class="account-dropdown-header">
+                        <div class="account-dropdown-name" id="account-dropdown-name"></div>
+                        <div class="account-dropdown-email" id="account-dropdown-email"></div>
+                    </div>
+                    <div class="account-dropdown-divider"></div>
+                    <button class="account-dropdown-item" id="account-signout-btn">Sign Out</button>
+                </div>
+            </div>
             <h1 class="header-title editable" data-field="title"></h1>
             <p class="header-tagline editable" data-field="tagline"></p>
         </header>

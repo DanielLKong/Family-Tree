@@ -51,16 +51,42 @@ async function initAuth() {
 function updateAuthUI() {
   const accountBtnText = document.getElementById('account-btn-text');
   const accountBtn = document.getElementById('account-btn');
+  const dropdownName = document.getElementById('account-dropdown-name');
+  const dropdownEmail = document.getElementById('account-dropdown-email');
 
   if (currentUser) {
-    // Show user email or "Account"
-    const displayName = currentUser.email.split('@')[0];
+    // Get display name from user metadata or email
+    const fullName = currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || currentUser.email.split('@')[0];
+    const displayName = fullName.split(' ')[0]; // First name only for button
+
     accountBtnText.textContent = displayName;
     accountBtn.classList.add('signed-in');
+
+    // Update dropdown
+    dropdownName.textContent = fullName;
+    dropdownEmail.textContent = currentUser.email;
   } else {
     accountBtnText.textContent = 'Sign In';
     accountBtn.classList.remove('signed-in');
+    dropdownName.textContent = '';
+    dropdownEmail.textContent = '';
   }
+}
+
+/**
+ * Toggle account dropdown
+ */
+function toggleAccountDropdown() {
+  const dropdown = document.getElementById('account-dropdown');
+  dropdown.classList.toggle('active');
+}
+
+/**
+ * Close account dropdown
+ */
+function closeAccountDropdown() {
+  const dropdown = document.getElementById('account-dropdown');
+  dropdown.classList.remove('active');
 }
 
 // ============================================
@@ -217,13 +243,11 @@ async function signOut() {
 // ============================================
 
 function initAuthListeners() {
-  // Account button - open modal or show account menu
-  document.getElementById('account-btn').addEventListener('click', () => {
+  // Account button - open modal or show dropdown
+  document.getElementById('account-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
     if (currentUser) {
-      // Show simple confirm to sign out
-      if (confirm(`Signed in as ${currentUser.email}\n\nSign out?`)) {
-        signOut();
-      }
+      toggleAccountDropdown();
     } else {
       openAuthModal();
     }
@@ -289,10 +313,26 @@ function initAuthListeners() {
     btn.disabled = false;
   });
 
-  // Escape key to close modal
+  // Sign out button in dropdown
+  document.getElementById('account-signout-btn').addEventListener('click', async () => {
+    closeAccountDropdown();
+    await signOut();
+  });
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    const dropdown = document.getElementById('account-dropdown');
+    const accountBtn = document.getElementById('account-btn');
+    if (!dropdown.contains(e.target) && !accountBtn.contains(e.target)) {
+      closeAccountDropdown();
+    }
+  });
+
+  // Escape key to close modal and dropdown
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       closeAuthModal();
+      closeAccountDropdown();
     }
   });
 }
