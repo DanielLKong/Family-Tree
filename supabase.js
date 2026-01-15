@@ -9,7 +9,7 @@ const SUPABASE_URL = 'https://geesuocihtbaeadrxhbk.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlZXN1b2NpaHRiYWVhZHJ4aGJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0Mzg4NjIsImV4cCI6MjA4NDAxNDg2Mn0.wM9LGMVFLxYksVYEZsMZjT-QlrcLYEpCtVeeHwM7OKM';
 
 // Initialize Supabase client
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Current user state
 let currentUser = null;
@@ -23,7 +23,7 @@ let currentUser = null;
  */
 async function initAuth() {
   // Check current session
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await supabaseClient.auth.getSession();
 
   if (session) {
     currentUser = session.user;
@@ -31,7 +31,7 @@ async function initAuth() {
   }
 
   // Listen for auth changes (login, logout, token refresh)
-  supabase.auth.onAuthStateChange((event, session) => {
+  supabaseClient.auth.onAuthStateChange((event, session) => {
     currentUser = session?.user || null;
     updateAuthUI();
 
@@ -124,7 +124,7 @@ function toggleAuthMode() {
  * Sign up with email and password
  */
 async function signUp(email, password) {
-  const { data, error } = await supabase.auth.signUp({
+  const { data, error } = await supabaseClient.auth.signUp({
     email,
     password,
   });
@@ -146,7 +146,7 @@ async function signUp(email, password) {
  * Sign in with email and password
  */
 async function signIn(email, password) {
-  const { data, error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabaseClient.auth.signInWithPassword({
     email,
     password,
   });
@@ -163,7 +163,7 @@ async function signIn(email, password) {
  * Send magic link (passwordless login)
  */
 async function sendMagicLink(email) {
-  const { error } = await supabase.auth.signInWithOtp({
+  const { error } = await supabaseClient.auth.signInWithOtp({
     email,
     options: {
       emailRedirectTo: window.location.origin,
@@ -183,7 +183,7 @@ async function sendMagicLink(email) {
  * Sign out
  */
 async function signOut() {
-  const { error } = await supabase.auth.signOut();
+  const { error } = await supabaseClient.auth.signOut();
 
   if (error) {
     alert(error.message);
