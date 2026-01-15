@@ -3051,6 +3051,40 @@ body {
     cursor: not-allowed;
 }
 
+.auth-google-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 14px 16px;
+    margin-top: 12px;
+    background: white;
+    color: var(--text-primary);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.auth-google-btn:hover {
+    border-color: var(--text-tertiary);
+    background: var(--bg);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.auth-google-btn:disabled {
+    color: var(--text-tertiary);
+    cursor: not-allowed;
+}
+
+.auth-google-btn svg {
+    flex-shrink: 0;
+}
+
 .auth-toggle-text {
     text-align: center;
     margin-top: 20px;

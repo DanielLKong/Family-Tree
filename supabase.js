@@ -180,6 +180,25 @@ async function sendMagicLink(email) {
 }
 
 /**
+ * Sign in with Google
+ */
+async function signInWithGoogle() {
+  const { error } = await supabaseClient.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: window.location.origin,
+    },
+  });
+
+  if (error) {
+    alert(error.message);
+    return false;
+  }
+
+  return true;
+}
+
+/**
  * Sign out
  */
 async function signOut() {
@@ -260,6 +279,14 @@ function initAuthListeners() {
 
     btn.disabled = false;
     btn.textContent = 'Send Magic Link';
+  });
+
+  // Google sign-in button
+  document.getElementById('auth-google-btn').addEventListener('click', async () => {
+    const btn = document.getElementById('auth-google-btn');
+    btn.disabled = true;
+    await signInWithGoogle();
+    btn.disabled = false;
   });
 
   // Escape key to close modal

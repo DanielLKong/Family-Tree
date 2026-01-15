@@ -77,18 +77,47 @@
 - [x] Photos gallery with drag & drop, paste, lightbox viewer
 - [x] Profile navigation (click family member → opens their profile with back button)
 - [x] Editable header (click to edit family name and tagline)
+- [x] Local Storage - Auto-save tree data to browser
+- [x] Clickable spouse names on cards (opens their profile)
+- [x] Nickname display on cards with cycling arrows
+- [x] Nicknames toggle button in control panel
+- [x] Centered card layout (avatar on top, names below)
 
-### Current Sprint - Next Up
-1. [ ] **Name toggle** - Option to show nickname instead of full name on tree cards
-2. [ ] **Local Storage** - Auto-save tree data to browser
-3. [ ] **Export/Import JSON** - Download/upload tree as file for backup
+### Phase 2 - Web (User Accounts & Cloud)
 
-### Future (Phase 2) - Web
-- [ ] User accounts and login (Firebase or similar)
-- [ ] Share tree with family members
-- [ ] Photo uploads to cloud
-- [ ] Multiple family trees per account
-- [ ] Real-time collaboration
+**Stack:** Supabase (auth, database, photo storage) + Vercel (hosting)
+
+**Why Supabase over Firebase:**
+- PostgreSQL database (relational, perfect for family trees)
+- Predictable pricing ($25/mo Pro vs Firebase pay-per-read)
+- Open source, no vendor lock-in
+- Generous free tier (50K auth users, 500MB database, 1GB photos)
+
+**Guest vs. Account Model:**
+| Feature | Guest (No Account) | With Account |
+|---------|-------------------|--------------|
+| Create/edit trees | ✅ Yes | ✅ Yes |
+| Multiple trees | ✅ Yes | ✅ Yes |
+| Data stored in | localStorage | Cloud (Supabase) |
+| Sync across devices | ❌ No | ✅ Yes |
+| Share with family | ❌ No | ✅ Yes |
+| Invite collaborators | ❌ No | ✅ Yes |
+
+**Implementation Phases:**
+- [ ] **Phase A:** Deploy to Vercel (get app hosted)
+- [ ] **Phase B:** Add Supabase Auth (email/password + magic link login)
+- [ ] **Phase C:** Cloud data storage (migrate from localStorage)
+- [ ] **Phase D:** Photo storage (replace base64 with cloud URLs)
+- [ ] **Phase E:** Sharing (invite family, permissions, view/edit access)
+
+**User Decisions:**
+- Login: Both email/password AND magic link options
+- Email verification: Start immediately, verify later
+- Data migration: Import localStorage data on signup
+
+**Hosting:**
+- Platform: Vercel (free tier)
+- Domain: Free Vercel URL initially (can add custom domain later)
 
 ### Future (Phase 2) - Mobile App
 
@@ -220,13 +249,13 @@ Three-column picker allowing partial dates:
 ## Section 10: Action Items for Next Session
 
 ### Immediate Next Steps
-1. [ ] **Name toggle** - Add option to show nickname instead of full name on tree cards (uses "Also Called" field)
-2. [ ] **Local Storage** - Auto-save all tree data to browser so changes persist between sessions
-3. [ ] **Export/Import JSON** - Download tree as a file for backup, upload to restore
+*Phase 1 complete! Next steps are Phase 2 features.*
 
 ### Testing Checklist (if needed)
 - [ ] Profile panel features (also called, dates, locations, about fields)
 - [ ] Photo modal (upload, crop, zoom, delete)
 - [ ] Photos gallery (multiple upload, drag & drop, paste, lightbox)
 - [ ] Editable header (click to edit title/tagline)
+- [ ] Nickname cycling on cards
+- [ ] Nicknames toggle button
 
