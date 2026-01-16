@@ -28,21 +28,7 @@
                 <span class="plus-icon">+</span>
                 <span>New Tree</span>
             </button>
-        </div>
-    </aside>
-    <div class="sidebar-overlay" id="sidebar-overlay"></div>
-
-    <div class="container">
-        <header class="header">
-            <button class="sidebar-toggle" id="sidebar-toggle" title="My Trees">
-                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2">
-                    <line x1="3" y1="6" x2="21" y2="6"/>
-                    <line x1="3" y1="12" x2="21" y2="12"/>
-                    <line x1="3" y1="18" x2="21" y2="18"/>
-                </svg>
-            </button>
-            <span class="header-label">Family Tree</span>
-            <div class="account-wrapper">
+            <div class="sidebar-account">
                 <button class="account-btn" id="account-btn" title="Account">
                     <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2">
                         <circle cx="12" cy="8" r="4"/>
@@ -59,6 +45,20 @@
                     <button class="account-dropdown-item" id="account-signout-btn">Sign Out</button>
                 </div>
             </div>
+        </div>
+    </aside>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <div class="container">
+        <header class="header">
+            <button class="sidebar-toggle" id="sidebar-toggle" title="My Trees">
+                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+            </button>
+            <span class="header-label">Family Tree</span>
             <h1 class="header-title editable" data-field="title"></h1>
             <p class="header-tagline editable" data-field="tagline"></p>
         </header>
