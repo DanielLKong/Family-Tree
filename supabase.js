@@ -58,13 +58,8 @@ async function initAuth() {
       // Clear localStorage so guest starts fresh (cloud data is safe)
       localStorage.removeItem('familyTreeData');
 
-      // Reload - will create a fresh default tree for guest
-      if (typeof loadAllTreesData === 'function') {
-        await loadAllTreesData();
-        if (typeof renderTreesList === 'function') renderTreesList();
-        if (typeof initEditableHeader === 'function') initEditableHeader();
-        if (typeof renderTree === 'function') renderTree();
-      }
+      // Reload page for clean state - simpler than resetting all in-memory data
+      window.location.reload();
     }
   });
 }
@@ -357,7 +352,15 @@ async function deleteTreeFromCloud(treeId) {
 }
 
 /**
- * Migrate localStorage trees to cloud on first sign-in
+ * Generate unique tree ID (same as app.js)
+ */
+function generateMigrationTreeId() {
+  return 'tree-' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+}
+
+/**
+ * Migrate localStorage trees to cloud on sign-in
+ * Generates new IDs to avoid conflicts with existing cloud trees
  */
 async function migrateLocalStorageToCloud() {
   const localData = localStorage.getItem('familyTreeData');
@@ -367,10 +370,33 @@ async function migrateLocalStorageToCloud() {
     const parsed = JSON.parse(localData);
     if (!parsed.trees || Object.keys(parsed.trees).length === 0) return;
 
+    // Check if tree is just the empty default (no people, default title)
+    const trees = Object.values(parsed.trees);
+    const hasRealData = trees.some(tree =>
+      Object.keys(tree.people || {}).length > 0 ||
+      (tree.title && tree.title !== 'Family Name')
+    );
+
+    if (!hasRealData) {
+      console.log('No real data to migrate (empty default tree)');
+      return;
+    }
+
     console.log('Migrating localStorage trees to cloud...');
 
-    for (const tree of Object.values(parsed.trees)) {
-      await saveTreeToCloud(tree);
+    for (const tree of trees) {
+      // Skip empty default trees
+      if (Object.keys(tree.people || {}).length === 0 && tree.title === 'Family Name') {
+        continue;
+      }
+
+      // Generate new ID to avoid overwriting existing cloud trees
+      const migratedTree = {
+        ...tree,
+        id: generateMigrationTreeId(),
+        updatedAt: new Date().toISOString()
+      };
+      await saveTreeToCloud(migratedTree);
     }
 
     console.log('Migration complete!');
