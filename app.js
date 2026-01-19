@@ -133,20 +133,11 @@ async function loadAllTreesData() {
 }
 
 /**
- * Save all trees data to cloud (if signed in) or localStorage
+ * Save all trees data to localStorage AND cloud (if signed in)
  */
 async function saveAllTreesData() {
   try {
-    // If signed in, save to cloud
-    if (typeof currentUser !== 'undefined' && currentUser && activeTreeId && typeof saveTreeToCloud === 'function') {
-      const tree = allTreesData.trees[activeTreeId];
-      if (tree) {
-        await saveTreeToCloud(tree);
-      }
-      return;
-    }
-
-    // Fall back to localStorage
+    // ALWAYS save to localStorage first (as backup)
     const json = JSON.stringify(allTreesData);
     const sizeInMB = new Blob([json]).size / (1024 * 1024);
 
@@ -155,6 +146,17 @@ async function saveAllTreesData() {
     }
 
     localStorage.setItem(STORAGE_KEY, json);
+
+    // ALSO save to cloud if signed in
+    if (typeof currentUser !== 'undefined' && currentUser && activeTreeId && typeof saveTreeToCloud === 'function') {
+      const tree = allTreesData.trees[activeTreeId];
+      if (tree) {
+        const success = await saveTreeToCloud(tree);
+        if (!success) {
+          console.warn('Cloud save failed, but localStorage backup succeeded');
+        }
+      }
+    }
   } catch (e) {
     console.error('Failed to save:', e);
     if (e.name === 'QuotaExceededError') {
