@@ -315,19 +315,23 @@ async function loadTreesFromCloud() {
 async function saveTreeToCloud(tree) {
   if (!currentUser) return false;
 
+  console.log('saveTreeToCloud called for:', tree.id, tree.title);
+
   const { error } = await supabaseClient
     .from('trees')
     .upsert({
       id: tree.id,
       user_id: currentUser.id,
       title: tree.title,
-      tagline: tree.tagline,
+      tagline: tree.tagline || '',
       data: {
-        rootPersonIds: tree.rootPersonIds,
-        collapsedIds: tree.collapsedIds,
-        people: tree.people
+        rootPersonIds: tree.rootPersonIds || [],
+        collapsedIds: tree.collapsedIds || [],
+        people: tree.people || {}
       },
       updated_at: new Date().toISOString()
+    }, {
+      onConflict: 'id'
     });
 
   if (error) {
@@ -335,6 +339,7 @@ async function saveTreeToCloud(tree) {
     return false;
   }
 
+  console.log('saveTreeToCloud success for:', tree.id);
   return true;
 }
 
