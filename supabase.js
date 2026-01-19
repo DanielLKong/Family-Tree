@@ -48,6 +48,8 @@ async function initAuth() {
       // Reload the app with cloud data (app.js handles this)
       if (typeof loadAllTreesData === 'function') {
         await loadAllTreesData();
+        console.log('After loadAllTreesData - allTreesData:', allTreesData);
+        console.log('After loadAllTreesData - tree count:', Object.keys(allTreesData?.trees || {}).length);
         if (typeof renderTreesList === 'function') renderTreesList();
         if (typeof initEditableHeader === 'function') initEditableHeader();
         if (typeof renderTree === 'function') renderTree();
