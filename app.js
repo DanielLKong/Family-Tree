@@ -255,6 +255,16 @@ function switchToTree(treeId) {
  * Create a new empty tree
  */
 function createNewTree() {
+  // Only signed-in users can create multiple trees
+  const isSignedIn = typeof currentUser !== 'undefined' && currentUser;
+  if (!isSignedIn) {
+    // Open sign-in modal instead
+    if (typeof openAuthModal === 'function') {
+      openAuthModal();
+    }
+    return;
+  }
+
   // Save current tree first
   if (activeTreeId) {
     saveCurrentTreeData();
@@ -391,6 +401,14 @@ function renderTreesList() {
   if (!listEl) return;
 
   const trees = getTreesList();
+
+  // Show/hide New Tree button based on auth state
+  // Guests can only have 1 tree, signed-in users can have unlimited
+  const newTreeBtn = document.getElementById('new-tree-btn');
+  if (newTreeBtn) {
+    const isSignedIn = typeof currentUser !== 'undefined' && currentUser;
+    newTreeBtn.style.display = isSignedIn ? '' : 'none';
+  }
 
   if (trees.length === 0) {
     listEl.innerHTML = `

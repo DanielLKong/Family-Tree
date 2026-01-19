@@ -39,13 +39,11 @@ async function initAuth() {
       console.log('User signed in:', currentUser.email);
       closeAuthModal();
 
-      // Check if user has any cloud trees
-      const cloudData = await loadTreesFromCloud();
+      // Always migrate localStorage trees to cloud (merges with existing)
+      await migrateLocalStorageToCloud();
 
-      if (!cloudData || Object.keys(cloudData.trees).length === 0) {
-        // First sign-in: migrate localStorage to cloud
-        await migrateLocalStorageToCloud();
-      }
+      // Clear localStorage after migration so guest mode starts fresh
+      localStorage.removeItem('familyTreeData');
 
       // Reload the app with cloud data (app.js handles this)
       if (typeof loadAllTreesData === 'function') {
@@ -56,7 +54,11 @@ async function initAuth() {
       }
     } else if (event === 'SIGNED_OUT') {
       console.log('User signed out');
-      // Reload from localStorage
+
+      // Clear localStorage so guest starts fresh (cloud data is safe)
+      localStorage.removeItem('familyTreeData');
+
+      // Reload - will create a fresh default tree for guest
       if (typeof loadAllTreesData === 'function') {
         await loadAllTreesData();
         if (typeof renderTreesList === 'function') renderTreesList();
@@ -453,7 +455,9 @@ function initAuthListeners() {
   });
 
   // Sign out button in dropdown
-  document.getElementById('account-signout-btn').addEventListener('click', async () => {
+  document.getElementById('account-signout-btn').addEventListener('click', async (e) => {
+    e.stopPropagation();
+    e.preventDefault();
     closeAccountDropdown();
     await signOut();
   });
