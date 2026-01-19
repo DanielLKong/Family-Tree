@@ -310,33 +310,49 @@ async function loadTreesFromCloud() {
 }
 
 /**
- * Save a single tree to Supabase (upsert)
+ * Save a single tree to Supabase (insert or update)
  */
 async function saveTreeToCloud(tree) {
   if (!currentUser) return false;
 
   console.log('saveTreeToCloud called for:', tree.id, tree.title);
 
-  const { error } = await supabaseClient
-    .from('trees')
-    .upsert({
-      id: tree.id,
-      user_id: currentUser.id,
-      title: tree.title,
-      tagline: tree.tagline || '',
-      data: {
-        rootPersonIds: tree.rootPersonIds || [],
-        collapsedIds: tree.collapsedIds || [],
-        people: tree.people || {}
-      },
-      updated_at: new Date().toISOString()
-    }, {
-      onConflict: 'id'
-    });
+  const treeData = {
+    id: tree.id,
+    user_id: currentUser.id,
+    title: tree.title,
+    tagline: tree.tagline || '',
+    data: {
+      rootPersonIds: tree.rootPersonIds || [],
+      collapsedIds: tree.collapsedIds || [],
+      people: tree.people || {}
+    },
+    updated_at: new Date().toISOString()
+  };
 
-  if (error) {
-    console.error('Error saving tree:', error);
-    return false;
+  // Try insert first, if conflict then update
+  const { error: insertError } = await supabaseClient
+    .from('trees')
+    .insert(treeData);
+
+  if (insertError) {
+    // If duplicate key, try update instead
+    if (insertError.code === '23505') {
+      console.log('Tree exists, updating instead...');
+      const { error: updateError } = await supabaseClient
+        .from('trees')
+        .update(treeData)
+        .eq('id', tree.id)
+        .eq('user_id', currentUser.id);
+
+      if (updateError) {
+        console.error('Error updating tree:', updateError);
+        return false;
+      }
+    } else {
+      console.error('Error inserting tree:', insertError);
+      return false;
+    }
   }
 
   console.log('saveTreeToCloud success for:', tree.id);
