@@ -268,6 +268,8 @@ async function signOut() {
 async function loadTreesFromCloud() {
   if (!currentUser) return null;
 
+  console.log('Loading trees from cloud for user:', currentUser.id);
+
   const { data, error } = await supabaseClient
     .from('trees')
     .select('*')
@@ -278,6 +280,8 @@ async function loadTreesFromCloud() {
     return null;
   }
 
+  console.log('Cloud trees loaded:', data?.length || 0, 'trees');
+
   if (!data || data.length === 0) {
     return null; // No trees in cloud yet
   }
@@ -285,6 +289,7 @@ async function loadTreesFromCloud() {
   // Convert array of rows to our trees object format
   const trees = {};
   data.forEach(row => {
+    console.log('  - Tree:', row.id, row.title);
     trees[row.id] = {
       id: row.id,
       title: row.title,
@@ -387,16 +392,20 @@ async function migrateLocalStorageToCloud() {
     for (const tree of trees) {
       // Skip empty default trees
       if (Object.keys(tree.people || {}).length === 0 && tree.title === 'Family Name') {
+        console.log('  - Skipping empty default tree:', tree.id);
         continue;
       }
 
       // Generate new ID to avoid overwriting existing cloud trees
+      const newId = generateMigrationTreeId();
+      console.log('  - Migrating tree:', tree.title, 'old ID:', tree.id, 'new ID:', newId);
       const migratedTree = {
         ...tree,
-        id: generateMigrationTreeId(),
+        id: newId,
         updatedAt: new Date().toISOString()
       };
-      await saveTreeToCloud(migratedTree);
+      const success = await saveTreeToCloud(migratedTree);
+      console.log('    Save result:', success ? 'success' : 'FAILED');
     }
 
     console.log('Migration complete!');
