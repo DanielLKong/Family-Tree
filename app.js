@@ -45,10 +45,30 @@ function migrateToV2(v1Data) {
 }
 
 /**
- * Load all trees data from localStorage
+ * Load all trees data from cloud (if signed in) or localStorage
  */
-function loadAllTreesData() {
+async function loadAllTreesData() {
   try {
+    // If signed in, try to load from cloud first
+    if (typeof currentUser !== 'undefined' && currentUser && typeof loadTreesFromCloud === 'function') {
+      const cloudData = await loadTreesFromCloud();
+      if (cloudData && Object.keys(cloudData.trees).length > 0) {
+        allTreesData = cloudData;
+        activeTreeId = cloudData.activeTreeId;
+
+        // Load active tree into familyData
+        if (activeTreeId && allTreesData.trees[activeTreeId]) {
+          loadTreeIntoFamilyData(activeTreeId);
+        } else if (Object.keys(allTreesData.trees).length > 0) {
+          activeTreeId = Object.keys(allTreesData.trees)[0];
+          allTreesData.activeTreeId = activeTreeId;
+          loadTreeIntoFamilyData(activeTreeId);
+        }
+        return true;
+      }
+    }
+
+    // Fall back to localStorage
     const stored = localStorage.getItem(STORAGE_KEY);
 
     if (!stored) {
@@ -73,7 +93,7 @@ function loadAllTreesData() {
         }
       };
       activeTreeId = defaultTreeId;
-      saveAllTreesData();
+      await saveAllTreesData();
       return true;
     }
 
@@ -84,7 +104,7 @@ function loadAllTreesData() {
       console.log('Migrating from v1 to v2 storage format');
       allTreesData = migrateToV2(parsed);
       activeTreeId = allTreesData.activeTreeId;
-      saveAllTreesData();
+      await saveAllTreesData();
     } else {
       allTreesData = parsed;
       activeTreeId = parsed.activeTreeId;
@@ -113,10 +133,20 @@ function loadAllTreesData() {
 }
 
 /**
- * Save all trees data to localStorage
+ * Save all trees data to cloud (if signed in) or localStorage
  */
-function saveAllTreesData() {
+async function saveAllTreesData() {
   try {
+    // If signed in, save to cloud
+    if (typeof currentUser !== 'undefined' && currentUser && activeTreeId && typeof saveTreeToCloud === 'function') {
+      const tree = allTreesData.trees[activeTreeId];
+      if (tree) {
+        await saveTreeToCloud(tree);
+      }
+      return;
+    }
+
+    // Fall back to localStorage
     const json = JSON.stringify(allTreesData);
     const sizeInMB = new Blob([json]).size / (1024 * 1024);
 
@@ -126,7 +156,7 @@ function saveAllTreesData() {
 
     localStorage.setItem(STORAGE_KEY, json);
   } catch (e) {
-    console.error('Failed to save to localStorage:', e);
+    console.error('Failed to save:', e);
     if (e.name === 'QuotaExceededError') {
       alert('Storage is full. Please delete some trees or photos.');
     }
@@ -185,12 +215,13 @@ function saveCurrentTreeData() {
 }
 
 /**
- * Save to localStorage (called throughout the app)
+ * Save to storage (cloud if signed in, localStorage otherwise)
  */
 function saveToLocalStorage() {
   if (activeTreeId) {
     saveCurrentTreeData();
   }
+  // Fire and forget - don't await to keep UI responsive
   saveAllTreesData();
 }
 
@@ -254,9 +285,14 @@ function createNewTree() {
 /**
  * Delete a tree
  */
-function deleteTree(treeId) {
+async function deleteTree(treeId) {
   const tree = allTreesData.trees[treeId];
   if (!tree) return;
+
+  // Delete from cloud if signed in
+  if (typeof currentUser !== 'undefined' && currentUser && typeof deleteTreeFromCloud === 'function') {
+    await deleteTreeFromCloud(treeId);
+  }
 
   delete allTreesData.trees[treeId];
 
@@ -277,7 +313,7 @@ function deleteTree(treeId) {
     renderTree();
   }
 
-  saveAllTreesData();
+  await saveAllTreesData();
   renderTreesList();
   closeDeleteModal();
 }
@@ -4126,9 +4162,9 @@ function startEditingHeader(element) {
 /**
  * Initialize the app when DOM is ready
  */
-function init() {
+async function init() {
   // Load saved data first (handles multi-tree storage)
-  loadAllTreesData();
+  await loadAllTreesData();
 
   createProfilePanel();
   createPhotoModal();

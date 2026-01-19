@@ -31,16 +31,38 @@ async function initAuth() {
   }
 
   // Listen for auth changes (login, logout, token refresh)
-  supabaseClient.auth.onAuthStateChange((event, session) => {
+  supabaseClient.auth.onAuthStateChange(async (event, session) => {
     currentUser = session?.user || null;
     updateAuthUI();
 
     if (event === 'SIGNED_IN') {
       console.log('User signed in:', currentUser.email);
       closeAuthModal();
-      // TODO: Migrate localStorage data to cloud
+
+      // Check if user has any cloud trees
+      const cloudData = await loadTreesFromCloud();
+
+      if (!cloudData || Object.keys(cloudData.trees).length === 0) {
+        // First sign-in: migrate localStorage to cloud
+        await migrateLocalStorageToCloud();
+      }
+
+      // Reload the app with cloud data (app.js handles this)
+      if (typeof loadAllTreesData === 'function') {
+        await loadAllTreesData();
+        if (typeof renderTreesList === 'function') renderTreesList();
+        if (typeof initEditableHeader === 'function') initEditableHeader();
+        if (typeof renderTree === 'function') renderTree();
+      }
     } else if (event === 'SIGNED_OUT') {
       console.log('User signed out');
+      // Reload from localStorage
+      if (typeof loadAllTreesData === 'function') {
+        await loadAllTreesData();
+        if (typeof renderTreesList === 'function') renderTreesList();
+        if (typeof initEditableHeader === 'function') initEditableHeader();
+        if (typeof renderTree === 'function') renderTree();
+      }
     }
   });
 }
@@ -236,6 +258,123 @@ async function signOut() {
   }
 
   return true;
+}
+
+// ============================================
+// CLOUD DATA STORAGE
+// ============================================
+
+/**
+ * Load all trees from Supabase for current user
+ * Returns: { trees: {...}, activeTreeId: "..." } or null if none
+ */
+async function loadTreesFromCloud() {
+  if (!currentUser) return null;
+
+  const { data, error } = await supabaseClient
+    .from('trees')
+    .select('*')
+    .eq('user_id', currentUser.id);
+
+  if (error) {
+    console.error('Error loading trees:', error);
+    return null;
+  }
+
+  if (!data || data.length === 0) {
+    return null; // No trees in cloud yet
+  }
+
+  // Convert array of rows to our trees object format
+  const trees = {};
+  data.forEach(row => {
+    trees[row.id] = {
+      id: row.id,
+      title: row.title,
+      tagline: row.tagline,
+      ...row.data, // rootPersonIds, people, collapsedIds
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    };
+  });
+
+  return {
+    version: 2,
+    activeTreeId: data[0].id, // Default to first tree
+    trees
+  };
+}
+
+/**
+ * Save a single tree to Supabase (upsert)
+ */
+async function saveTreeToCloud(tree) {
+  if (!currentUser) return false;
+
+  const { error } = await supabaseClient
+    .from('trees')
+    .upsert({
+      id: tree.id,
+      user_id: currentUser.id,
+      title: tree.title,
+      tagline: tree.tagline,
+      data: {
+        rootPersonIds: tree.rootPersonIds,
+        collapsedIds: tree.collapsedIds,
+        people: tree.people
+      },
+      updated_at: new Date().toISOString()
+    });
+
+  if (error) {
+    console.error('Error saving tree:', error);
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Delete a tree from Supabase
+ */
+async function deleteTreeFromCloud(treeId) {
+  if (!currentUser) return false;
+
+  const { error } = await supabaseClient
+    .from('trees')
+    .delete()
+    .eq('id', treeId)
+    .eq('user_id', currentUser.id);
+
+  if (error) {
+    console.error('Error deleting tree:', error);
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Migrate localStorage trees to cloud on first sign-in
+ */
+async function migrateLocalStorageToCloud() {
+  const localData = localStorage.getItem('familyTreeData');
+  if (!localData) return;
+
+  try {
+    const parsed = JSON.parse(localData);
+    if (!parsed.trees || Object.keys(parsed.trees).length === 0) return;
+
+    console.log('Migrating localStorage trees to cloud...');
+
+    for (const tree of Object.values(parsed.trees)) {
+      await saveTreeToCloud(tree);
+    }
+
+    console.log('Migration complete!');
+  } catch (e) {
+    console.error('Error migrating localStorage:', e);
+  }
 }
 
 // ============================================
