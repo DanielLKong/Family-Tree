@@ -513,11 +513,16 @@ function initAuthListeners() {
   });
 
   // Sign out button in dropdown
-  document.getElementById('account-signout-btn').addEventListener('click', async (e) => {
+  document.getElementById('account-signout-btn').addEventListener('click', (e) => {
     e.stopPropagation();
     e.preventDefault();
-    closeAccountDropdown();
-    await signOut();
+    // Don't close dropdown until sign out completes
+    signOut().then(() => {
+      closeAccountDropdown();
+    }).catch((err) => {
+      console.error('Sign out failed:', err);
+      closeAccountDropdown();
+    });
   });
 
   // Close dropdown when clicking outside

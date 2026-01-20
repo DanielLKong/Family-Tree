@@ -134,8 +134,9 @@ async function loadAllTreesData() {
 
 /**
  * Save all trees data to localStorage AND cloud (if signed in)
+ * @param {boolean} saveAllToCloud - If true, save ALL trees to cloud (used after creating/switching trees)
  */
-async function saveAllTreesData() {
+async function saveAllTreesData(saveAllToCloud = false) {
   try {
     // ALWAYS save to localStorage first (as backup)
     const json = JSON.stringify(allTreesData);
@@ -148,12 +149,23 @@ async function saveAllTreesData() {
     localStorage.setItem(STORAGE_KEY, json);
 
     // ALSO save to cloud if signed in
-    if (typeof currentUser !== 'undefined' && currentUser && activeTreeId && typeof saveTreeToCloud === 'function') {
-      const tree = allTreesData.trees[activeTreeId];
-      if (tree) {
-        const success = await saveTreeToCloud(tree);
-        if (!success) {
-          console.warn('Cloud save failed, but localStorage backup succeeded');
+    if (typeof currentUser !== 'undefined' && currentUser && typeof saveTreeToCloud === 'function') {
+      if (saveAllToCloud) {
+        // Save ALL trees to cloud (used when creating new trees)
+        for (const tree of Object.values(allTreesData.trees)) {
+          const success = await saveTreeToCloud(tree);
+          if (!success) {
+            console.warn('Cloud save failed for tree:', tree.id);
+          }
+        }
+      } else if (activeTreeId) {
+        // Just save the active tree (normal edits)
+        const tree = allTreesData.trees[activeTreeId];
+        if (tree) {
+          const success = await saveTreeToCloud(tree);
+          if (!success) {
+            console.warn('Cloud save failed, but localStorage backup succeeded');
+          }
         }
       }
     }
@@ -286,7 +298,8 @@ function createNewTree() {
 
   // Switch to new tree
   loadTreeIntoFamilyData(treeId);
-  saveAllTreesData();
+  // Save ALL trees to cloud (so existing trees don't get lost)
+  saveAllTreesData(true);
 
   // Refresh UI
   initEditableHeader();
