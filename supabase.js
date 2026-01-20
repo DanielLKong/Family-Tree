@@ -38,41 +38,33 @@ async function initAuth() {
     updateAuthUI();
 
     if (event === 'SIGNED_IN') {
-      console.log('User signed in:', currentUser.email);
       closeAuthModal();
 
       // Prevent duplicate processing (SIGNED_IN fires multiple times during OAuth)
       if (isProcessingSignIn) {
-        console.log('Already processing sign-in, skipping duplicate event');
         return;
       }
       isProcessingSignIn = true;
 
       // Use setTimeout to break out of the auth callback before doing async work
       setTimeout(async () => {
-        console.log('Starting post-signin tasks...');
-
-        // Always migrate localStorage trees to cloud (merges with existing)
+        // Migrate localStorage trees to cloud (merges with existing)
         await migrateLocalStorageToCloud();
 
         // Clear localStorage after migration so guest mode starts fresh
         localStorage.removeItem('familyTreeData');
 
-        // Reload the app with cloud data (app.js handles this)
+        // Reload the app with cloud data
         if (typeof loadAllTreesData === 'function') {
           await loadAllTreesData();
-          console.log('After loadAllTreesData - allTreesData:', allTreesData);
-          console.log('After loadAllTreesData - tree count:', Object.keys(allTreesData?.trees || {}).length);
           if (typeof renderTreesList === 'function') renderTreesList();
           if (typeof initEditableHeader === 'function') initEditableHeader();
           if (typeof renderTree === 'function') renderTree();
         }
 
-        // Reset flag after processing complete
         isProcessingSignIn = false;
       }, 0);
     } else if (event === 'SIGNED_OUT') {
-      console.log('User signed out');
 
       // Clear localStorage so guest starts fresh (cloud data is safe)
       localStorage.removeItem('familyTreeData');
@@ -287,8 +279,6 @@ async function signOut() {
 async function loadTreesFromCloud() {
   if (!currentUser) return null;
 
-  console.log('Loading trees from cloud for user:', currentUser.id);
-
   const { data, error } = await supabaseClient
     .from('trees')
     .select('*')
@@ -299,8 +289,6 @@ async function loadTreesFromCloud() {
     return null;
   }
 
-  console.log('Cloud trees loaded:', data?.length || 0, 'trees');
-
   if (!data || data.length === 0) {
     return null; // No trees in cloud yet
   }
@@ -308,7 +296,6 @@ async function loadTreesFromCloud() {
   // Convert array of rows to our trees object format
   const trees = {};
   data.forEach(row => {
-    console.log('  - Tree:', row.id, row.title);
     trees[row.id] = {
       id: row.id,
       title: row.title,
@@ -332,10 +319,6 @@ async function loadTreesFromCloud() {
 async function saveTreeToCloud(tree) {
   if (!currentUser) return false;
 
-  console.log('saveTreeToCloud called for:', tree.id, tree.title);
-  console.log('Current user ID:', currentUser.id);
-  console.log('Current user ID type:', typeof currentUser.id);
-
   const treeData = {
     id: tree.id,
     user_id: currentUser.id,
@@ -349,18 +332,12 @@ async function saveTreeToCloud(tree) {
     updated_at: new Date().toISOString()
   };
 
-  // Try insert first, if conflict then update
-  console.log('Attempting insert with data:', JSON.stringify(treeData, null, 2));
-
   let insertError;
   try {
-    console.log('About to call supabase upsert via fetch...');
 
     // Get the current session for the auth token
     const { data: { session } } = await supabaseClient.auth.getSession();
     const accessToken = session?.access_token;
-
-    console.log('Access token exists:', !!accessToken);
 
     // Use fetch directly with upsert (on conflict, update)
     const response = await fetch(`${SUPABASE_URL}/rest/v1/trees?on_conflict=id`, {
@@ -374,24 +351,20 @@ async function saveTreeToCloud(tree) {
       body: JSON.stringify(treeData)
     });
 
-    console.log('Fetch response status:', response.status);
-
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Fetch error response:', errorText);
+      console.error('Cloud save failed:', tree.id, errorText);
       insertError = { message: errorText, code: response.status };
     }
   } catch (e) {
-    console.error('Insert exception:', e);
+    console.error('Cloud save error:', e.message);
     insertError = { message: e.message };
   }
 
   if (insertError) {
-    console.error('Error saving tree:', insertError);
     return false;
   }
 
-  console.log('saveTreeToCloud success for:', tree.id);
   return true;
 }
 
@@ -421,17 +394,11 @@ async function deleteTreeFromCloud(treeId) {
  */
 async function migrateLocalStorageToCloud() {
   const localData = localStorage.getItem('familyTreeData');
-  if (!localData) {
-    console.log('No localStorage data to migrate');
-    return;
-  }
+  if (!localData) return;
 
   try {
     const parsed = JSON.parse(localData);
-    if (!parsed.trees || Object.keys(parsed.trees).length === 0) {
-      console.log('No trees in localStorage');
-      return;
-    }
+    if (!parsed.trees || Object.keys(parsed.trees).length === 0) return;
 
     // Check if tree is just the empty default (no people, default title)
     const trees = Object.values(parsed.trees);
@@ -440,29 +407,20 @@ async function migrateLocalStorageToCloud() {
       (tree.title && tree.title !== 'Family Name')
     );
 
-    if (!hasRealData) {
-      console.log('No real data to migrate (empty default tree)');
-      return;
-    }
-
-    console.log('Migrating localStorage trees to cloud...');
+    if (!hasRealData) return;
 
     for (const tree of trees) {
       // Skip empty default trees
       if (Object.keys(tree.people || {}).length === 0 && tree.title === 'Family Name') {
-        console.log('  - Skipping empty default tree:', tree.id);
         continue;
       }
 
       // Keep the original ID - upsert will handle duplicates
-      console.log('  - Migrating tree:', tree.title, 'ID:', tree.id);
-      const success = await saveTreeToCloud(tree);
-      console.log('    Save result:', success ? 'success' : 'FAILED');
+      await saveTreeToCloud(tree);
     }
 
-    console.log('Migration complete!');
   } catch (e) {
-    console.error('Error migrating localStorage:', e);
+    console.error('Migration error:', e.message);
   }
 }
 
