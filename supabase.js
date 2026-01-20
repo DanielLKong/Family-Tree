@@ -13,6 +13,7 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
 
 // Current user state
 let currentUser = null;
+let isProcessingSignIn = false; // Prevent duplicate sign-in processing
 
 // ============================================
 // AUTH STATE MANAGEMENT
@@ -40,6 +41,13 @@ async function initAuth() {
       console.log('User signed in:', currentUser.email);
       closeAuthModal();
 
+      // Prevent duplicate processing (SIGNED_IN fires multiple times during OAuth)
+      if (isProcessingSignIn) {
+        console.log('Already processing sign-in, skipping duplicate event');
+        return;
+      }
+      isProcessingSignIn = true;
+
       // Use setTimeout to break out of the auth callback before doing async work
       setTimeout(async () => {
         console.log('Starting post-signin tasks...');
@@ -59,6 +67,9 @@ async function initAuth() {
           if (typeof initEditableHeader === 'function') initEditableHeader();
           if (typeof renderTree === 'function') renderTree();
         }
+
+        // Reset flag after processing complete
+        isProcessingSignIn = false;
       }, 0);
     } else if (event === 'SIGNED_OUT') {
       console.log('User signed out');
