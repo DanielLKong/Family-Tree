@@ -337,10 +337,9 @@ async function saveTreeToCloud(tree) {
 
   let insertData, insertError;
   try {
-    const result = await Promise.race([
-      supabaseClient.from('trees').insert(treeData).select(),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('Insert timed out after 10s')), 10000))
-    ]);
+    console.log('About to call supabase insert...');
+    const result = await supabaseClient.from('trees').insert(treeData);
+    console.log('Insert returned:', result);
     insertData = result.data;
     insertError = result.error;
   } catch (e) {
