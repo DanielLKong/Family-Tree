@@ -316,6 +316,8 @@ async function saveTreeToCloud(tree) {
   if (!currentUser) return false;
 
   console.log('saveTreeToCloud called for:', tree.id, tree.title);
+  console.log('Current user ID:', currentUser.id);
+  console.log('Current user ID type:', typeof currentUser.id);
 
   const treeData = {
     id: tree.id,
