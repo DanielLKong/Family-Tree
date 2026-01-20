@@ -341,9 +341,9 @@ async function saveTreeToCloud(tree) {
   // Try insert first, if conflict then update
   console.log('Attempting insert with data:', JSON.stringify(treeData, null, 2));
 
-  let insertData, insertError;
+  let insertError;
   try {
-    console.log('About to call supabase insert via fetch...');
+    console.log('About to call supabase upsert via fetch...');
 
     // Get the current session for the auth token
     const { data: { session } } = await supabaseClient.auth.getSession();
@@ -351,14 +351,14 @@ async function saveTreeToCloud(tree) {
 
     console.log('Access token exists:', !!accessToken);
 
-    // Use fetch directly to bypass any client issues
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/trees`, {
+    // Use fetch directly with upsert (on conflict, update)
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/trees?on_conflict=id`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'apikey': SUPABASE_ANON_KEY,
         'Authorization': `Bearer ${accessToken}`,
-        'Prefer': 'return=minimal'
+        'Prefer': 'resolution=merge-duplicates,return=minimal'
       },
       body: JSON.stringify(treeData)
     });
@@ -369,38 +369,15 @@ async function saveTreeToCloud(tree) {
       const errorText = await response.text();
       console.error('Fetch error response:', errorText);
       insertError = { message: errorText, code: response.status };
-    } else {
-      insertData = { success: true };
-      insertError = null;
     }
   } catch (e) {
     console.error('Insert exception:', e);
     insertError = { message: e.message };
   }
 
-  console.log('Insert result - data:', insertData, 'error:', insertError);
-
   if (insertError) {
-    // If duplicate key, try update instead
-    if (insertError.code === '23505') {
-      console.log('Tree exists, updating instead...');
-      const { data: updateData, error: updateError } = await supabaseClient
-        .from('trees')
-        .update(treeData)
-        .eq('id', tree.id)
-        .eq('user_id', currentUser.id)
-        .select();
-
-      console.log('Update result - data:', updateData, 'error:', updateError);
-
-      if (updateError) {
-        console.error('Error updating tree:', updateError);
-        return false;
-      }
-    } else {
-      console.error('Error inserting tree:', insertError);
-      return false;
-    }
+    console.error('Error saving tree:', insertError);
+    return false;
   }
 
   console.log('saveTreeToCloud success for:', tree.id);
