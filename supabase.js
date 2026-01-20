@@ -405,23 +405,22 @@ async function deleteTreeFromCloud(treeId) {
 }
 
 /**
- * Generate unique tree ID (same as app.js)
- */
-function generateMigrationTreeId() {
-  return 'tree-' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
-}
-
-/**
  * Migrate localStorage trees to cloud on sign-in
- * Generates new IDs to avoid conflicts with existing cloud trees
+ * Uses upsert so duplicate calls don't create duplicate trees
  */
 async function migrateLocalStorageToCloud() {
   const localData = localStorage.getItem('familyTreeData');
-  if (!localData) return;
+  if (!localData) {
+    console.log('No localStorage data to migrate');
+    return;
+  }
 
   try {
     const parsed = JSON.parse(localData);
-    if (!parsed.trees || Object.keys(parsed.trees).length === 0) return;
+    if (!parsed.trees || Object.keys(parsed.trees).length === 0) {
+      console.log('No trees in localStorage');
+      return;
+    }
 
     // Check if tree is just the empty default (no people, default title)
     const trees = Object.values(parsed.trees);
@@ -444,15 +443,9 @@ async function migrateLocalStorageToCloud() {
         continue;
       }
 
-      // Generate new ID to avoid overwriting existing cloud trees
-      const newId = generateMigrationTreeId();
-      console.log('  - Migrating tree:', tree.title, 'old ID:', tree.id, 'new ID:', newId);
-      const migratedTree = {
-        ...tree,
-        id: newId,
-        updatedAt: new Date().toISOString()
-      };
-      const success = await saveTreeToCloud(migratedTree);
+      // Keep the original ID - upsert will handle duplicates
+      console.log('  - Migrating tree:', tree.title, 'ID:', tree.id);
+      const success = await saveTreeToCloud(tree);
       console.log('    Save result:', success ? 'success' : 'FAILED');
     }
 
