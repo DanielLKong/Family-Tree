@@ -31,7 +31,8 @@ async function initAuth() {
   }
 
   // Listen for auth changes (login, logout, token refresh)
-  supabaseClient.auth.onAuthStateChange(async (event, session) => {
+  // IMPORTANT: Don't await inside this callback - it can cause deadlocks
+  supabaseClient.auth.onAuthStateChange((event, session) => {
     currentUser = session?.user || null;
     updateAuthUI();
 
@@ -39,21 +40,26 @@ async function initAuth() {
       console.log('User signed in:', currentUser.email);
       closeAuthModal();
 
-      // Always migrate localStorage trees to cloud (merges with existing)
-      await migrateLocalStorageToCloud();
+      // Use setTimeout to break out of the auth callback before doing async work
+      setTimeout(async () => {
+        console.log('Starting post-signin tasks...');
 
-      // Clear localStorage after migration so guest mode starts fresh
-      localStorage.removeItem('familyTreeData');
+        // Always migrate localStorage trees to cloud (merges with existing)
+        await migrateLocalStorageToCloud();
 
-      // Reload the app with cloud data (app.js handles this)
-      if (typeof loadAllTreesData === 'function') {
-        await loadAllTreesData();
-        console.log('After loadAllTreesData - allTreesData:', allTreesData);
-        console.log('After loadAllTreesData - tree count:', Object.keys(allTreesData?.trees || {}).length);
-        if (typeof renderTreesList === 'function') renderTreesList();
-        if (typeof initEditableHeader === 'function') initEditableHeader();
-        if (typeof renderTree === 'function') renderTree();
-      }
+        // Clear localStorage after migration so guest mode starts fresh
+        localStorage.removeItem('familyTreeData');
+
+        // Reload the app with cloud data (app.js handles this)
+        if (typeof loadAllTreesData === 'function') {
+          await loadAllTreesData();
+          console.log('After loadAllTreesData - allTreesData:', allTreesData);
+          console.log('After loadAllTreesData - tree count:', Object.keys(allTreesData?.trees || {}).length);
+          if (typeof renderTreesList === 'function') renderTreesList();
+          if (typeof initEditableHeader === 'function') initEditableHeader();
+          if (typeof renderTree === 'function') renderTree();
+        }
+      }, 0);
     } else if (event === 'SIGNED_OUT') {
       console.log('User signed out');
 
