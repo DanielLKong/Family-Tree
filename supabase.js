@@ -337,11 +337,36 @@ async function saveTreeToCloud(tree) {
 
   let insertData, insertError;
   try {
-    console.log('About to call supabase insert...');
-    const result = await supabaseClient.from('trees').insert(treeData);
-    console.log('Insert returned:', result);
-    insertData = result.data;
-    insertError = result.error;
+    console.log('About to call supabase insert via fetch...');
+
+    // Get the current session for the auth token
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    const accessToken = session?.access_token;
+
+    console.log('Access token exists:', !!accessToken);
+
+    // Use fetch directly to bypass any client issues
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/trees`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${accessToken}`,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(treeData)
+    });
+
+    console.log('Fetch response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Fetch error response:', errorText);
+      insertError = { message: errorText, code: response.status };
+    } else {
+      insertData = { success: true };
+      insertError = null;
+    }
   } catch (e) {
     console.error('Insert exception:', e);
     insertError = { message: e.message };
