@@ -46,6 +46,10 @@ async function initAuth() {
       }
       isProcessingSignIn = true;
 
+      // Show syncing overlay
+      const syncOverlay = document.getElementById('sync-overlay');
+      if (syncOverlay) syncOverlay.classList.add('active');
+
       // Use setTimeout to break out of the auth callback before doing async work
       setTimeout(async () => {
         // Migrate localStorage trees to cloud (merges with existing)
@@ -61,6 +65,9 @@ async function initAuth() {
           if (typeof initEditableHeader === 'function') initEditableHeader();
           if (typeof renderTree === 'function') renderTree();
         }
+
+        // Hide syncing overlay
+        if (syncOverlay) syncOverlay.classList.remove('active');
 
         isProcessingSignIn = false;
       }, 0);
