@@ -331,19 +331,27 @@ async function saveTreeToCloud(tree) {
   };
 
   // Try insert first, if conflict then update
-  const { error: insertError } = await supabaseClient
+  console.log('Attempting insert with data:', JSON.stringify(treeData, null, 2));
+
+  const { data: insertData, error: insertError } = await supabaseClient
     .from('trees')
-    .insert(treeData);
+    .insert(treeData)
+    .select();
+
+  console.log('Insert result - data:', insertData, 'error:', insertError);
 
   if (insertError) {
     // If duplicate key, try update instead
     if (insertError.code === '23505') {
       console.log('Tree exists, updating instead...');
-      const { error: updateError } = await supabaseClient
+      const { data: updateData, error: updateError } = await supabaseClient
         .from('trees')
         .update(treeData)
         .eq('id', tree.id)
-        .eq('user_id', currentUser.id);
+        .eq('user_id', currentUser.id)
+        .select();
+
+      console.log('Update result - data:', updateData, 'error:', updateError);
 
       if (updateError) {
         console.error('Error updating tree:', updateError);
