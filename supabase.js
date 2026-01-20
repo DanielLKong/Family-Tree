@@ -65,12 +65,8 @@ async function initAuth() {
         isProcessingSignIn = false;
       }, 0);
     } else if (event === 'SIGNED_OUT') {
-
-      // Clear localStorage so guest starts fresh (cloud data is safe)
-      localStorage.removeItem('familyTreeData');
-
-      // Reload page for clean state - simpler than resetting all in-memory data
-      window.location.reload();
+      // Sign out is handled directly in the button click handler
+      // This event may fire but the page will already be reloading
     }
   });
 }
@@ -500,16 +496,33 @@ function initAuthListeners() {
   });
 
   // Sign out button in dropdown
-  document.getElementById('account-signout-btn').addEventListener('click', (e) => {
+  document.getElementById('account-signout-btn').addEventListener('click', async (e) => {
     e.stopPropagation();
     e.preventDefault();
-    // Don't close dropdown until sign out completes
-    signOut().then(() => {
-      closeAccountDropdown();
-    }).catch((err) => {
+
+    // Disable button to prevent double-clicks
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    btn.textContent = 'Signing out...';
+
+    try {
+      const success = await signOut();
+      if (success) {
+        // Clear localStorage and reload immediately (don't wait for event)
+        localStorage.removeItem('familyTreeData');
+        window.location.reload();
+      } else {
+        // Re-enable button if sign out failed
+        btn.disabled = false;
+        btn.textContent = 'Sign Out';
+        closeAccountDropdown();
+      }
+    } catch (err) {
       console.error('Sign out failed:', err);
+      btn.disabled = false;
+      btn.textContent = 'Sign Out';
       closeAccountDropdown();
-    });
+    }
   });
 
   // Close dropdown when clicking outside
