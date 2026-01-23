@@ -16,11 +16,426 @@ const STORAGE_VERSION = 2;
 let allTreesData = null;
 let activeTreeId = null;
 
+// Sharing state
+let currentShareToken = null;  // Set when viewing via share link
+let currentPermission = 'owner'; // 'owner' | 'editor' | 'viewer'
+
 /**
  * Generate unique tree ID
  */
 function generateTreeId() {
   return 'tree-' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+}
+
+// ============================================
+// URL ROUTING
+// ============================================
+
+/**
+ * Parse current URL and return route info
+ * Routes:
+ *   /            -> home (show user's trees)
+ *   /tree/{id}   -> view specific tree (owner access)
+ *   /s/{token}   -> view shared tree (anonymous OK)
+ */
+function parseRoute() {
+  const path = window.location.pathname;
+
+  // Share link: /s/{token}
+  if (path.startsWith('/s/')) {
+    const token = path.slice(3); // Remove '/s/'
+    if (token) {
+      return { type: 'share', token };
+    }
+  }
+
+  // Direct tree link: /tree/{id}
+  if (path.startsWith('/tree/')) {
+    const treeId = path.slice(6); // Remove '/tree/'
+    if (treeId) {
+      return { type: 'tree', treeId };
+    }
+  }
+
+  // Home/default
+  return { type: 'home' };
+}
+
+/**
+ * Update browser URL without reloading page
+ */
+function updateURL(path, replace = false) {
+  if (replace) {
+    window.history.replaceState({}, '', path);
+  } else {
+    window.history.pushState({}, '', path);
+  }
+}
+
+/**
+ * Initialize routing - called during app init
+ * Returns the route info for the initial page load
+ */
+async function initRouter() {
+  const route = parseRoute();
+
+  // Handle browser back/forward
+  window.addEventListener('popstate', async () => {
+    const newRoute = parseRoute();
+    await handleRoute(newRoute);
+  });
+
+  return route;
+}
+
+/**
+ * Handle a route - load the appropriate tree
+ */
+async function handleRoute(route) {
+  if (route.type === 'share') {
+    // Load tree via share token
+    if (typeof getTreeByShareToken === 'function') {
+      const result = await getTreeByShareToken(route.token);
+      if (result) {
+        currentShareToken = route.token;
+        currentPermission = result.permission;
+        loadSharedTreeData(result.tree);
+        renderTree();
+        updatePermissionUI();
+        return true;
+      } else {
+        // Invalid or expired share link
+        alert('This share link is invalid or has expired.');
+        window.location.href = '/';
+        return false;
+      }
+    }
+  } else if (route.type === 'tree') {
+    // Load owned tree by ID
+    if (allTreesData && allTreesData.trees[route.treeId]) {
+      currentShareToken = null;
+      currentPermission = 'owner';
+      switchToTree(route.treeId);
+      updatePermissionUI();
+      return true;
+    } else {
+      // Tree not found or not owned - try loading as shared
+      alert('Tree not found or you don\'t have access.');
+      window.location.href = '/';
+      return false;
+    }
+  }
+
+  // Default: home - show user's first tree
+  currentShareToken = null;
+  currentPermission = 'owner';
+  updatePermissionUI();
+  return true;
+}
+
+/**
+ * Load shared tree data into the app
+ */
+function loadSharedTreeData(tree) {
+  // Set the tree as the only tree in memory (shared view)
+  familyData = {
+    title: tree.title,
+    tagline: tree.tagline || '',
+    rootPersonIds: tree.rootPersonIds || [],
+    collapsedIds: tree.collapsedIds || [],
+    people: tree.people || {}
+  };
+
+  // Update header
+  const titleEl = document.querySelector('.tree-title');
+  const taglineEl = document.querySelector('.tree-tagline');
+  if (titleEl) titleEl.textContent = familyData.title;
+  if (taglineEl) taglineEl.textContent = familyData.tagline;
+}
+
+/**
+ * Update UI based on current permission level
+ */
+function updatePermissionUI() {
+  const isViewer = currentPermission === 'viewer';
+  const isOwner = currentPermission === 'owner';
+  const isSharedView = !!currentShareToken;
+
+  // Hide/show edit controls based on permission
+  document.body.classList.toggle('view-only', isViewer);
+  document.body.classList.toggle('is-owner', isOwner);
+  document.body.classList.toggle('shared-view', isSharedView);
+
+  // Hide sidebar toggle when viewing shared tree (no "My Trees" to show)
+  const sidebarToggle = document.getElementById('sidebar-toggle');
+  if (sidebarToggle) {
+    sidebarToggle.style.display = isSharedView ? 'none' : '';
+  }
+
+  // Show/hide share button based on permission
+  const shareBtn = document.getElementById('share-btn');
+  if (shareBtn) {
+    // Only show share button if user can share (owner or editor) AND is signed in
+    const isSignedIn = typeof currentUser !== 'undefined' && currentUser;
+    shareBtn.style.display = (canShare() && isSignedIn && !isSharedView) ? '' : 'none';
+  }
+
+  // Add shared view indicator if viewing shared tree
+  let sharedIndicator = document.querySelector('.shared-view-indicator');
+  if (isSharedView && !sharedIndicator) {
+    sharedIndicator = document.createElement('div');
+    sharedIndicator.className = 'shared-view-indicator';
+    sharedIndicator.innerHTML = `
+      <span class="shared-view-badge">${isViewer ? 'Viewing' : 'Editing'}</span>
+      <span class="shared-view-text">Shared tree</span>
+    `;
+    const header = document.querySelector('.header');
+    if (header) {
+      header.insertBefore(sharedIndicator, header.firstChild);
+    }
+  } else if (!isSharedView && sharedIndicator) {
+    sharedIndicator.remove();
+  }
+}
+
+/**
+ * Check if current user can edit
+ */
+function canEdit() {
+  return currentPermission === 'owner' || currentPermission === 'editor';
+}
+
+/**
+ * Check if current user can share
+ */
+function canShare() {
+  return currentPermission === 'owner' || currentPermission === 'editor';
+}
+
+// ============================================
+// SHARE MODAL
+// ============================================
+
+/**
+ * Initialize share modal event listeners
+ */
+function initShareModal() {
+  const shareBtn = document.getElementById('share-btn');
+  const closeBtn = document.getElementById('share-modal-close');
+  const overlay = document.getElementById('share-modal-overlay');
+  const createBtn = document.getElementById('share-create-btn');
+  const copyBtn = document.getElementById('share-copy-btn');
+  const signInBtn = document.getElementById('share-signin-btn');
+
+  if (shareBtn) {
+    shareBtn.addEventListener('click', openShareModal);
+  }
+
+  if (closeBtn) {
+    closeBtn.addEventListener('click', closeShareModal);
+  }
+
+  if (overlay) {
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        closeShareModal();
+      }
+    });
+  }
+
+  if (createBtn) {
+    createBtn.addEventListener('click', handleCreateShareLink);
+  }
+
+  if (copyBtn) {
+    copyBtn.addEventListener('click', handleCopyShareLink);
+  }
+
+  if (signInBtn) {
+    signInBtn.addEventListener('click', () => {
+      closeShareModal();
+      if (typeof openAuthModal === 'function') {
+        openAuthModal();
+      }
+    });
+  }
+
+  // Escape key to close
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeShareModal();
+    }
+  });
+}
+
+/**
+ * Open share modal
+ */
+async function openShareModal() {
+  const overlay = document.getElementById('share-modal-overlay');
+  const guestPrompt = document.getElementById('share-guest-prompt');
+  const createSection = document.querySelector('.share-create-section');
+  const existingSection = document.getElementById('share-existing-section');
+  const linkSection = document.getElementById('share-link-section');
+
+  if (!overlay) return;
+
+  // Check if user is signed in
+  const isSignedIn = typeof currentUser !== 'undefined' && currentUser;
+
+  // Show/hide appropriate sections
+  if (guestPrompt) guestPrompt.style.display = isSignedIn ? 'none' : 'block';
+  if (createSection) createSection.style.display = isSignedIn ? 'block' : 'none';
+  if (existingSection) existingSection.style.display = isSignedIn ? 'block' : 'none';
+  if (linkSection) linkSection.style.display = 'none';
+
+  // Load existing shares if signed in
+  if (isSignedIn && activeTreeId) {
+    await loadExistingShares();
+  }
+
+  overlay.classList.add('active');
+}
+
+/**
+ * Close share modal
+ */
+function closeShareModal() {
+  const overlay = document.getElementById('share-modal-overlay');
+  if (overlay) {
+    overlay.classList.remove('active');
+  }
+}
+
+/**
+ * Load and display existing share links
+ */
+async function loadExistingShares() {
+  const listEl = document.getElementById('share-existing-list');
+  if (!listEl || !activeTreeId) return;
+
+  const shares = await listShareLinks(activeTreeId);
+
+  if (shares.length === 0) {
+    listEl.innerHTML = '<li class="share-empty">No active share links</li>';
+    return;
+  }
+
+  listEl.innerHTML = shares.map(share => {
+    const shareUrl = `${window.location.origin}/s/${share.share_token}`;
+    const permissionLabel = share.permission === 'editor' ? 'Can edit' : 'Can view';
+    const createdDate = new Date(share.created_at).toLocaleDateString();
+
+    return `
+      <li class="share-existing-item" data-share-id="${share.id}">
+        <div class="share-existing-info">
+          <span class="share-existing-permission">${permissionLabel}</span>
+          <span class="share-existing-date">Created ${createdDate}</span>
+        </div>
+        <div class="share-existing-actions">
+          <button class="share-existing-copy" data-url="${shareUrl}" title="Copy link">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+          </button>
+          <button class="share-existing-delete" data-share-id="${share.id}" title="Delete link">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2">
+              <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </svg>
+          </button>
+        </div>
+      </li>
+    `;
+  }).join('');
+
+  // Add event listeners for copy and delete buttons
+  listEl.querySelectorAll('.share-existing-copy').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const url = btn.dataset.url;
+      navigator.clipboard.writeText(url);
+      btn.innerHTML = '<span style="color: var(--success);">Copied!</span>';
+      setTimeout(() => {
+        btn.innerHTML = `
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
+        `;
+      }, 2000);
+    });
+  });
+
+  listEl.querySelectorAll('.share-existing-delete').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const shareId = btn.dataset.shareId;
+      if (confirm('Delete this share link? Anyone using it will lose access.')) {
+        const success = await deleteShareLink(shareId);
+        if (success) {
+          await loadExistingShares();
+        }
+      }
+    });
+  });
+}
+
+/**
+ * Handle creating a new share link
+ */
+async function handleCreateShareLink() {
+  const createBtn = document.getElementById('share-create-btn');
+  const linkSection = document.getElementById('share-link-section');
+  const linkInput = document.getElementById('share-link-input');
+  const linkHint = document.getElementById('share-link-hint');
+
+  if (!activeTreeId) {
+    alert('No tree selected to share');
+    return;
+  }
+
+  // Get selected permission
+  const permissionRadio = document.querySelector('input[name="share-permission"]:checked');
+  const permission = permissionRadio ? permissionRadio.value : 'viewer';
+
+  // Disable button while creating
+  createBtn.disabled = true;
+  createBtn.textContent = 'Creating...';
+
+  const result = await createShareLink(activeTreeId, permission);
+
+  createBtn.disabled = false;
+  createBtn.textContent = 'Create Link';
+
+  if (result.success) {
+    // Show the link section
+    linkSection.style.display = 'block';
+    linkInput.value = result.shareUrl;
+    linkHint.textContent = permission === 'editor'
+      ? 'Anyone with this link can view and edit the tree'
+      : 'Anyone with this link can view the tree';
+
+    // Refresh the existing shares list
+    await loadExistingShares();
+  } else {
+    alert('Failed to create share link: ' + (result.error || 'Unknown error'));
+  }
+}
+
+/**
+ * Handle copying the share link
+ */
+function handleCopyShareLink() {
+  const linkInput = document.getElementById('share-link-input');
+  const copyBtn = document.getElementById('share-copy-btn');
+
+  if (!linkInput || !linkInput.value) return;
+
+  navigator.clipboard.writeText(linkInput.value);
+
+  copyBtn.textContent = 'Copied!';
+  setTimeout(() => {
+    copyBtn.textContent = 'Copy';
+  }, 2000);
 }
 
 /**
@@ -138,7 +553,32 @@ async function loadAllTreesData() {
  */
 async function saveAllTreesData(saveAllToCloud = false) {
   try {
-    // ALWAYS save to localStorage first (as backup)
+    // If viewing via share link as editor, save differently
+    if (currentShareToken && currentPermission === 'editor') {
+      // Build tree object from current familyData
+      const tree = {
+        title: familyData.title,
+        tagline: familyData.tagline,
+        rootPersonIds: familyData.rootPersonIds,
+        collapsedIds: familyData.collapsedIds,
+        people: familyData.people
+      };
+
+      if (typeof saveTreeAsEditor === 'function') {
+        const success = await saveTreeAsEditor(tree, currentShareToken);
+        if (!success) {
+          console.warn('Editor save failed');
+        }
+      }
+      return; // Don't save to localStorage when editing shared tree
+    }
+
+    // If viewing as viewer, don't save at all
+    if (currentShareToken && currentPermission === 'viewer') {
+      return;
+    }
+
+    // Normal flow: ALWAYS save to localStorage first (as backup)
     const json = JSON.stringify(allTreesData);
     const sizeInMB = new Blob([json]).size / (1024 * 1024);
 
@@ -2018,6 +2458,11 @@ function generateId(name) {
  * Add a new person to the family
  */
 function addPerson(name, parentIds = [], spouseId = null, birthOrder = null) {
+  if (!canEdit()) {
+    console.warn('Cannot add person: view-only access');
+    return null;
+  }
+
   const id = generateId(name);
 
   familyData.people[id] = {
@@ -2138,6 +2583,11 @@ function deleteSpouse(personId, spouseId) {
  * Update a person's details
  */
 function updatePerson(personId, updates) {
+  if (!canEdit()) {
+    console.warn('Cannot update person: view-only access');
+    return false;
+  }
+
   const person = getPersonById(personId);
   if (!person) return false;
 
@@ -2150,6 +2600,11 @@ function updatePerson(personId, updates) {
  * Remove a person from the family
  */
 function removePerson(personId) {
+  if (!canEdit()) {
+    console.warn('Cannot remove person: view-only access');
+    return false;
+  }
+
   const person = getPersonById(personId);
   if (!person) return false;
 
@@ -4119,6 +4574,7 @@ function initEditableHeader() {
  * Start editing a header field
  */
 function startEditingHeader(element) {
+  if (!canEdit()) return; // Don't allow editing in view-only mode
   if (element.classList.contains('editing')) return;
 
   const field = element.dataset.field;
@@ -4196,17 +4652,44 @@ function startEditingHeader(element) {
  * Initialize the app when DOM is ready
  */
 async function init() {
-  // Load saved data first (handles multi-tree storage)
-  await loadAllTreesData();
+  // Initialize router first to determine what to load
+  const route = await initRouter();
+
+  // Handle share link route (load shared tree before anything else)
+  if (route.type === 'share') {
+    // Wait for auth to initialize first (brief delay)
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    const result = await getTreeByShareToken(route.token);
+    if (result) {
+      currentShareToken = route.token;
+      currentPermission = result.permission;
+      loadSharedTreeData(result.tree);
+    } else {
+      alert('This share link is invalid or has expired.');
+      window.location.href = '/';
+      return;
+    }
+  } else {
+    // Normal flow - load user's trees
+    await loadAllTreesData();
+
+    // If route specifies a tree, switch to it
+    if (route.type === 'tree' && allTreesData?.trees[route.treeId]) {
+      switchToTree(route.treeId);
+    }
+  }
 
   createProfilePanel();
   createPhotoModal();
   initEditableHeader();
   initSidebar();
+  initShareModal();
   renderTree();
   initTreeControls();
   initDragToScroll();
   setZoom(DEFAULT_ZOOM); // Apply default zoom
+  updatePermissionUI();
 
   // Close popups when clicking outside
   document.addEventListener('click', (e) => {

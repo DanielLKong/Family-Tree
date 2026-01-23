@@ -428,6 +428,217 @@ async function migrateLocalStorageToCloud() {
 }
 
 // ============================================
+// SHARING FUNCTIONS
+// ============================================
+
+/**
+ * Generate a random share token
+ */
+function generateShareToken() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let token = '';
+  for (let i = 0; i < 12; i++) {
+    token += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return token;
+}
+
+/**
+ * Create a share link for a tree
+ * @param {string} treeId - The tree to share
+ * @param {string} permission - 'viewer' or 'editor'
+ * @returns {object} { success, shareUrl, error }
+ */
+async function createShareLink(treeId, permission = 'viewer') {
+  if (!currentUser) {
+    return { success: false, error: 'Must be signed in to share' };
+  }
+
+  const shareToken = generateShareToken();
+
+  try {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    const accessToken = session?.access_token;
+
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/tree_shares`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${accessToken}`,
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify({
+        tree_id: treeId,
+        share_token: shareToken,
+        permission: permission,
+        created_by: currentUser.id
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Share creation failed:', errorText);
+      return { success: false, error: 'Failed to create share link' };
+    }
+
+    const shareUrl = `${window.location.origin}/s/${shareToken}`;
+    return { success: true, shareUrl, shareToken };
+
+  } catch (e) {
+    console.error('Share creation error:', e.message);
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Get tree data by share token (works for anonymous users)
+ * @param {string} token - The share token from URL
+ * @returns {object} { tree, permission } or null if invalid
+ */
+async function getTreeByShareToken(token) {
+  try {
+    // First, get the share record to find tree_id and permission
+    const { data: shareData, error: shareError } = await supabaseClient
+      .from('tree_shares')
+      .select('tree_id, permission, is_active')
+      .eq('share_token', token)
+      .single();
+
+    if (shareError || !shareData) {
+      console.error('Share token lookup failed:', shareError);
+      return null;
+    }
+
+    if (!shareData.is_active) {
+      console.error('Share link is disabled');
+      return null;
+    }
+
+    // Now get the tree data
+    const { data: treeData, error: treeError } = await supabaseClient
+      .from('trees')
+      .select('*')
+      .eq('id', shareData.tree_id)
+      .single();
+
+    if (treeError || !treeData) {
+      console.error('Tree lookup failed:', treeError);
+      return null;
+    }
+
+    // Convert to our tree format
+    const tree = {
+      id: treeData.id,
+      title: treeData.title,
+      tagline: treeData.tagline,
+      rootPersonIds: treeData.data?.rootPersonIds || [],
+      collapsedIds: treeData.data?.collapsedIds || [],
+      people: treeData.data?.people || {}
+    };
+
+    return {
+      tree,
+      permission: shareData.permission
+    };
+
+  } catch (e) {
+    console.error('getTreeByShareToken error:', e.message);
+    return null;
+  }
+}
+
+/**
+ * List all share links for a tree
+ * @param {string} treeId - The tree ID
+ * @returns {array} Array of share records
+ */
+async function listShareLinks(treeId) {
+  if (!currentUser) return [];
+
+  const { data, error } = await supabaseClient
+    .from('tree_shares')
+    .select('*')
+    .eq('tree_id', treeId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error listing shares:', error);
+    return [];
+  }
+
+  return data || [];
+}
+
+/**
+ * Delete a share link
+ * @param {string} shareId - The share record ID
+ */
+async function deleteShareLink(shareId) {
+  if (!currentUser) return false;
+
+  const { error } = await supabaseClient
+    .from('tree_shares')
+    .delete()
+    .eq('id', shareId);
+
+  if (error) {
+    console.error('Error deleting share:', error);
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Save tree as editor (using share token for auth)
+ * Called when an editor (not owner) makes changes
+ */
+async function saveTreeAsEditor(tree, shareToken) {
+  try {
+    // Verify the share token has editor permission
+    const { data: shareData, error: shareError } = await supabaseClient
+      .from('tree_shares')
+      .select('tree_id, permission')
+      .eq('share_token', shareToken)
+      .single();
+
+    if (shareError || !shareData || shareData.permission !== 'editor') {
+      console.error('Not authorized to edit');
+      return false;
+    }
+
+    // Update the tree (using anon key - RLS allows editors via policy)
+    const treeData = {
+      title: tree.title,
+      tagline: tree.tagline || '',
+      data: {
+        rootPersonIds: tree.rootPersonIds || [],
+        collapsedIds: tree.collapsedIds || [],
+        people: tree.people || {}
+      },
+      updated_at: new Date().toISOString()
+    };
+
+    const { error: updateError } = await supabaseClient
+      .from('trees')
+      .update(treeData)
+      .eq('id', shareData.tree_id);
+
+    if (updateError) {
+      console.error('Editor save failed:', updateError);
+      return false;
+    }
+
+    return true;
+
+  } catch (e) {
+    console.error('saveTreeAsEditor error:', e.message);
+    return false;
+  }
+}
+
+// ============================================
 // EVENT LISTENERS
 // ============================================
 

@@ -3202,3 +3202,405 @@ body {
     font-size: 16px;
     color: var(--text-secondary);
 }
+
+/* ==========================================
+   Share Button in Header
+   ========================================== */
+.share-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-left: auto;
+}
+
+.share-btn:hover {
+    background: var(--bg-warm);
+    border-color: var(--text-tertiary);
+}
+
+.share-btn svg {
+    stroke: var(--text-secondary);
+}
+
+/* Hide share button when viewing as viewer */
+.view-only .share-btn {
+    display: none;
+}
+
+/* ==========================================
+   Share Modal
+   ========================================== */
+.share-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.share-modal-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.share-modal {
+    background: white;
+    border-radius: 16px;
+    padding: 32px;
+    width: 100%;
+    max-width: 440px;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    transform: translateY(20px);
+    transition: transform 0.2s ease;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.share-modal-overlay.active .share-modal {
+    transform: translateY(0);
+}
+
+.share-modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    padding: 4px;
+    line-height: 1;
+}
+
+.share-modal-close:hover {
+    color: var(--text-primary);
+}
+
+.share-modal-title {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+}
+
+.share-modal-subtitle {
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+}
+
+/* Permission Toggle */
+.share-permission-toggle {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.share-permission-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.share-permission-option:hover {
+    border-color: var(--text-tertiary);
+}
+
+.share-permission-option:has(input:checked) {
+    border-color: var(--text-primary);
+    background: var(--bg-warm);
+}
+
+.share-permission-option input {
+    margin-top: 3px;
+    accent-color: var(--text-primary);
+}
+
+.share-permission-label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.share-permission-label strong {
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.share-permission-label span {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+/* Create Link Button */
+.share-create-btn {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--text-primary);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.share-create-btn:hover {
+    opacity: 0.9;
+}
+
+.share-create-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Generated Link Section */
+.share-link-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--card-border);
+}
+
+.share-link-box {
+    display: flex;
+    gap: 8px;
+}
+
+.share-link-input {
+    flex: 1;
+    padding: 12px 14px;
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--text-primary);
+    background: var(--bg-warm);
+}
+
+.share-copy-btn {
+    padding: 12px 20px;
+    background: var(--text-primary);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.share-copy-btn:hover {
+    opacity: 0.9;
+}
+
+.share-link-hint {
+    margin-top: 8px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+/* Existing Shares Section */
+.share-existing-section {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid var(--card-border);
+}
+
+.share-existing-title {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+}
+
+.share-existing-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.share-existing-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: var(--bg-warm);
+    border-radius: 8px;
+}
+
+.share-existing-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.share-existing-permission {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.share-existing-date {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--text-tertiary);
+}
+
+.share-existing-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.share-existing-copy,
+.share-existing-delete {
+    padding: 6px 8px;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+}
+
+.share-existing-copy:hover {
+    background: var(--card-bg);
+    color: var(--text-primary);
+}
+
+.share-existing-delete:hover {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.share-empty {
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--text-tertiary);
+    text-align: center;
+    padding: 16px;
+}
+
+/* Guest Prompt */
+.share-guest-prompt {
+    text-align: center;
+    padding: 20px 0;
+}
+
+.share-guest-prompt p {
+    font-family: var(--font-body);
+    font-size: 15px;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+}
+
+.share-signin-btn {
+    padding: 12px 32px;
+    background: var(--text-primary);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.share-signin-btn:hover {
+    opacity: 0.9;
+}
+
+/* ==========================================
+   View-Only Mode (for viewers)
+   ========================================== */
+.view-only .card-menu-btn,
+.view-only .add-child-btn,
+.view-only .tree-controls .collapse-all,
+.view-only .tree-controls .expand-all {
+    display: none;
+}
+
+.view-only .header-title.editable,
+.view-only .header-tagline.editable {
+    cursor: default;
+}
+
+.view-only .header-title.editable:hover,
+.view-only .header-tagline.editable:hover {
+    background: transparent;
+}
+
+/* Shared View Indicator */
+.shared-view-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: var(--bg-warm);
+    border-radius: 8px;
+    margin-right: 12px;
+}
+
+.shared-view-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    background: var(--text-primary);
+    color: white;
+    border-radius: 4px;
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.shared-view-text {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+/* Hide things in shared view */
+.shared-view .sidebar-toggle {
+    display: none;
+}
