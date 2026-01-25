@@ -4657,15 +4657,20 @@ async function init() {
 
   // Handle share link route (load shared tree before anything else)
   if (route.type === 'share') {
-    // Wait for auth to initialize first (brief delay)
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Wait for Supabase to be ready
+    await new Promise(resolve => setTimeout(resolve, 200));
 
+    console.log('Loading shared tree with token:', route.token);
     const result = await getTreeByShareToken(route.token);
-    if (result) {
+    console.log('getTreeByShareToken result:', result);
+
+    if (result && result.tree) {
       currentShareToken = route.token;
       currentPermission = result.permission;
       loadSharedTreeData(result.tree);
+      console.log('Shared tree loaded:', result.tree.title);
     } else {
+      console.error('Failed to load shared tree');
       alert('This share link is invalid or has expired.');
       window.location.href = '/';
       return;
