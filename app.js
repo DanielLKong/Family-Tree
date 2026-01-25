@@ -551,8 +551,11 @@ async function loadAllTreesData() {
  */
 async function saveAllTreesData(saveAllToCloud = false) {
   try {
+    console.log('saveAllTreesData called, currentShareToken:', currentShareToken, 'currentPermission:', currentPermission);
+
     // If viewing via share link as editor, save differently
     if (currentShareToken && currentPermission === 'editor') {
+      console.log('Saving as editor...');
       // Build tree object from current familyData
       const tree = {
         title: familyData.title,
@@ -564,6 +567,7 @@ async function saveAllTreesData(saveAllToCloud = false) {
 
       if (typeof saveTreeAsEditor === 'function') {
         const success = await saveTreeAsEditor(tree, currentShareToken);
+        console.log('Editor save result:', success);
         if (!success) {
           console.warn('Editor save failed');
         }
@@ -573,6 +577,7 @@ async function saveAllTreesData(saveAllToCloud = false) {
 
     // If viewing as viewer, don't save at all
     if (currentShareToken && currentPermission === 'viewer') {
+      console.log('Viewer mode - not saving');
       return;
     }
 
