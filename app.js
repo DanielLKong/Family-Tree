@@ -462,9 +462,13 @@ function migrateToV2(v1Data) {
  */
 async function loadAllTreesData() {
   try {
+    console.log('loadAllTreesData - currentUser:', currentUser ? 'yes' : 'no');
+
     // If signed in, try to load from cloud first
     if (typeof currentUser !== 'undefined' && currentUser && typeof loadTreesFromCloud === 'function') {
+      console.log('Loading from cloud...');
       const cloudData = await loadTreesFromCloud();
+      console.log('Cloud data:', cloudData ? Object.keys(cloudData.trees).length + ' trees' : 'none');
       if (cloudData && Object.keys(cloudData.trees).length > 0) {
         allTreesData = cloudData;
         activeTreeId = cloudData.activeTreeId;
