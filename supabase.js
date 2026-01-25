@@ -608,6 +608,8 @@ async function saveTreeAsEditor(tree, shareToken) {
       .eq('share_token', shareToken)
       .single();
 
+    console.log('saveTreeAsEditor - shareData:', shareData, 'error:', shareError);
+
     if (shareError || !shareData || shareData.permission !== 'editor') {
       console.error('Not authorized to edit');
       return false;
@@ -625,13 +627,24 @@ async function saveTreeAsEditor(tree, shareToken) {
       updated_at: new Date().toISOString()
     };
 
-    const { error: updateError } = await supabaseClient
+    console.log('saveTreeAsEditor - updating tree:', shareData.tree_id, 'with people:', Object.keys(tree.people || {}));
+
+    const { data: updateData, error: updateError } = await supabaseClient
       .from('trees')
       .update(treeData)
-      .eq('id', shareData.tree_id);
+      .eq('id', shareData.tree_id)
+      .select();
+
+    console.log('saveTreeAsEditor - result:', updateData, 'error:', updateError);
 
     if (updateError) {
       console.error('Editor save failed:', updateError);
+      return false;
+    }
+
+    // Check if any rows were actually updated
+    if (!updateData || updateData.length === 0) {
+      console.error('Editor save: No rows updated - RLS policy may be blocking');
       return false;
     }
 
