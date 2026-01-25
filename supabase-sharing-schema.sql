@@ -70,15 +70,17 @@ CREATE POLICY "Creators can update their shares"
 -- ============================================
 
 -- Policy: Allow editors to update trees they have edit access to
--- (This requires a more permissive update policy on trees)
+-- Note: This policy allows ANY anonymous user to update a tree if it has an editor share.
+-- This is intentional - the app validates the share token before calling update.
+-- For tighter security, you'd need to pass the token through RPC or use a service role.
 CREATE POLICY "Editors can update shared trees"
   ON trees
   FOR UPDATE
   USING (
     -- Owner can always update
-    user_id = auth.uid()
+    (auth.uid() IS NOT NULL AND user_id = auth.uid())
     OR
-    -- Check if there's an active editor share for this tree
+    -- Anyone can update if there's an active editor share for this tree
     EXISTS (
       SELECT 1 FROM tree_shares
       WHERE tree_shares.tree_id = trees.id

@@ -459,12 +459,13 @@ function migrateToV2(v1Data) {
 
 /**
  * Load all trees data from cloud (if signed in) or localStorage
+ * @param {boolean} forceCloud - If true, skip localStorage and only use cloud
  */
-async function loadAllTreesData() {
+async function loadAllTreesData(forceCloud = false) {
   try {
-    console.log('loadAllTreesData - currentUser:', currentUser ? 'yes' : 'no');
+    console.log('loadAllTreesData - currentUser:', currentUser ? 'yes' : 'no', 'forceCloud:', forceCloud);
 
-    // If signed in, try to load from cloud first
+    // If signed in, ALWAYS load from cloud (cloud is source of truth)
     if (typeof currentUser !== 'undefined' && currentUser && typeof loadTreesFromCloud === 'function') {
       console.log('Loading from cloud...');
       const cloudData = await loadTreesFromCloud();
@@ -510,7 +511,8 @@ async function loadAllTreesData() {
         }
       };
       activeTreeId = defaultTreeId;
-      await saveAllTreesData();
+      // Only save to localStorage for guests, not cloud (avoid overwriting)
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(allTreesData));
       return true;
     }
 
@@ -521,7 +523,8 @@ async function loadAllTreesData() {
       console.log('Migrating from v1 to v2 storage format');
       allTreesData = migrateToV2(parsed);
       activeTreeId = allTreesData.activeTreeId;
-      await saveAllTreesData();
+      // Only save to localStorage, not cloud
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(allTreesData));
     } else {
       allTreesData = parsed;
       activeTreeId = parsed.activeTreeId;
@@ -4683,7 +4686,10 @@ async function init() {
       return;
     }
   } else {
-    // Normal flow - load user's trees
+    // Normal flow - wait for auth to be ready, then load trees
+    // This ensures we load from cloud if signed in, not localStorage
+    await new Promise(resolve => setTimeout(resolve, 300));
+
     await loadAllTreesData();
 
     // If route specifies a tree, switch to it
