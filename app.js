@@ -137,20 +137,18 @@ async function handleRoute(route) {
  * Load shared tree data into the app
  */
 function loadSharedTreeData(tree) {
-  // Set the tree as the only tree in memory (shared view)
-  familyData = {
-    title: tree.title,
-    tagline: tree.tagline || '',
-    rootPersonIds: tree.rootPersonIds || [],
-    collapsedIds: tree.collapsedIds || [],
-    people: tree.people || {}
-  };
+  // Update familyData properties (can't reassign since it's const in data.js)
+  familyData.title = tree.title;
+  familyData.tagline = tree.tagline || '';
+  familyData.rootPersonIds = tree.rootPersonIds || [];
+  familyData.collapsedIds = tree.collapsedIds || [];
+  familyData.people = tree.people || {};
 
   // Update header
-  const titleEl = document.querySelector('.tree-title');
-  const taglineEl = document.querySelector('.tree-tagline');
+  const titleEl = document.querySelector('.header-title');
+  const taglineEl = document.querySelector('.header-tagline');
   if (titleEl) titleEl.textContent = familyData.title;
-  if (taglineEl) taglineEl.textContent = familyData.tagline;
+  if (taglineEl) taglineEl.textContent = familyData.tagline || 'Add a tagline...';
 }
 
 /**
