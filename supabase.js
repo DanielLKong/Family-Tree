@@ -104,6 +104,11 @@ function updateAuthUI() {
     dropdownName.textContent = '';
     dropdownEmail.textContent = '';
   }
+
+  // Update permission UI (show/hide share button based on auth state)
+  if (typeof updatePermissionUI === 'function') {
+    updatePermissionUI();
+  }
 }
 
 /**
