@@ -154,42 +154,29 @@
             <h2 class="share-modal-title">Share this tree</h2>
             <p class="share-modal-subtitle">Anyone with the link can access this tree</p>
 
-            <!-- Create new share link -->
-            <div class="share-create-section">
-                <div class="share-permission-toggle">
-                    <label class="share-permission-option">
-                        <input type="radio" name="share-permission" value="viewer" checked>
-                        <span class="share-permission-label">
-                            <strong>Can view</strong>
-                            <span>Look but not edit</span>
-                        </span>
-                    </label>
-                    <label class="share-permission-option">
-                        <input type="radio" name="share-permission" value="editor">
-                        <span class="share-permission-label">
-                            <strong>Can edit</strong>
-                            <span>Make changes to the tree</span>
-                        </span>
-                    </label>
+            <!-- Share links section -->
+            <div class="share-links-section" id="share-links-section">
+                <!-- View link -->
+                <div class="share-link-row">
+                    <div class="share-link-info">
+                        <strong>View only</strong>
+                        <span>Can look but not edit</span>
+                    </div>
+                    <div class="share-link-actions">
+                        <button class="share-copy-btn" id="share-copy-view-btn" data-permission="viewer">Copy link</button>
+                    </div>
                 </div>
-                <button class="share-create-btn" id="share-create-btn">Create Link</button>
-            </div>
 
-            <!-- Generated link display -->
-            <div class="share-link-section" id="share-link-section" style="display: none;">
-                <div class="share-link-box">
-                    <input type="text" class="share-link-input" id="share-link-input" readonly>
-                    <button class="share-copy-btn" id="share-copy-btn">Copy</button>
+                <!-- Edit link -->
+                <div class="share-link-row">
+                    <div class="share-link-info">
+                        <strong>Can edit</strong>
+                        <span>Can make changes to the tree</span>
+                    </div>
+                    <div class="share-link-actions">
+                        <button class="share-copy-btn" id="share-copy-edit-btn" data-permission="editor">Copy link</button>
+                    </div>
                 </div>
-                <p class="share-link-hint" id="share-link-hint"></p>
-            </div>
-
-            <!-- Existing shares list -->
-            <div class="share-existing-section" id="share-existing-section">
-                <h3 class="share-existing-title">Active links</h3>
-                <ul class="share-existing-list" id="share-existing-list">
-                    <!-- Populated dynamically -->
-                </ul>
             </div>
 
             <!-- Guest prompt (shown if not signed in) -->

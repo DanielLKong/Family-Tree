@@ -214,6 +214,9 @@ function canShare() {
 // SHARE MODAL
 // ============================================
 
+// Cache for share links (one per permission type per tree)
+let shareLinksCache = {};
+
 /**
  * Initialize share modal event listeners
  */
@@ -221,8 +224,8 @@ function initShareModal() {
   const shareBtn = document.getElementById('share-btn');
   const closeBtn = document.getElementById('share-modal-close');
   const overlay = document.getElementById('share-modal-overlay');
-  const createBtn = document.getElementById('share-create-btn');
-  const copyBtn = document.getElementById('share-copy-btn');
+  const copyViewBtn = document.getElementById('share-copy-view-btn');
+  const copyEditBtn = document.getElementById('share-copy-edit-btn');
   const signInBtn = document.getElementById('share-signin-btn');
 
   if (shareBtn) {
@@ -241,12 +244,12 @@ function initShareModal() {
     });
   }
 
-  if (createBtn) {
-    createBtn.addEventListener('click', handleCreateShareLink);
+  if (copyViewBtn) {
+    copyViewBtn.addEventListener('click', () => handleCopyLink('viewer', copyViewBtn));
   }
 
-  if (copyBtn) {
-    copyBtn.addEventListener('click', handleCopyShareLink);
+  if (copyEditBtn) {
+    copyEditBtn.addEventListener('click', () => handleCopyLink('editor', copyEditBtn));
   }
 
   if (signInBtn) {
@@ -272,9 +275,7 @@ function initShareModal() {
 async function openShareModal() {
   const overlay = document.getElementById('share-modal-overlay');
   const guestPrompt = document.getElementById('share-guest-prompt');
-  const createSection = document.querySelector('.share-create-section');
-  const existingSection = document.getElementById('share-existing-section');
-  const linkSection = document.getElementById('share-link-section');
+  const linksSection = document.getElementById('share-links-section');
 
   if (!overlay) return;
 
@@ -283,13 +284,11 @@ async function openShareModal() {
 
   // Show/hide appropriate sections
   if (guestPrompt) guestPrompt.style.display = isSignedIn ? 'none' : 'block';
-  if (createSection) createSection.style.display = isSignedIn ? 'block' : 'none';
-  if (existingSection) existingSection.style.display = isSignedIn ? 'block' : 'none';
-  if (linkSection) linkSection.style.display = 'none';
+  if (linksSection) linksSection.style.display = isSignedIn ? 'block' : 'none';
 
-  // Load existing shares if signed in
+  // Load existing shares to cache them
   if (isSignedIn && activeTreeId) {
-    await loadExistingShares();
+    await loadShareLinksIntoCache();
   }
 
   overlay.classList.add('active');
@@ -306,134 +305,85 @@ function closeShareModal() {
 }
 
 /**
- * Load and display existing share links
+ * Load existing share links into cache
  */
-async function loadExistingShares() {
-  const listEl = document.getElementById('share-existing-list');
-  if (!listEl || !activeTreeId) return;
+async function loadShareLinksIntoCache() {
+  if (!activeTreeId) return;
 
   const shares = await listShareLinks(activeTreeId);
 
-  if (shares.length === 0) {
-    listEl.innerHTML = '<li class="share-empty">No active share links</li>';
-    return;
-  }
+  // Reset cache for this tree
+  shareLinksCache[activeTreeId] = {
+    viewer: null,
+    editor: null
+  };
 
-  listEl.innerHTML = shares.map(share => {
-    const shareUrl = `${window.location.origin}/s/${share.share_token}`;
-    const permissionLabel = share.permission === 'editor' ? 'Can edit' : 'Can view';
-    const createdDate = new Date(share.created_at).toLocaleDateString();
-
-    return `
-      <li class="share-existing-item" data-share-id="${share.id}">
-        <div class="share-existing-info">
-          <span class="share-existing-permission">${permissionLabel}</span>
-          <span class="share-existing-date">Created ${createdDate}</span>
-        </div>
-        <div class="share-existing-actions">
-          <button class="share-existing-copy" data-url="${shareUrl}" title="Copy link">
-            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-            </svg>
-          </button>
-          <button class="share-existing-delete" data-share-id="${share.id}" title="Delete link">
-            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2">
-              <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-            </svg>
-          </button>
-        </div>
-      </li>
-    `;
-  }).join('');
-
-  // Add event listeners for copy and delete buttons
-  listEl.querySelectorAll('.share-existing-copy').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const url = btn.dataset.url;
-      navigator.clipboard.writeText(url);
-      btn.innerHTML = '<span style="color: var(--success);">Copied!</span>';
-      setTimeout(() => {
-        btn.innerHTML = `
-          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2">
-            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-          </svg>
-        `;
-      }, 2000);
-    });
-  });
-
-  listEl.querySelectorAll('.share-existing-delete').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const shareId = btn.dataset.shareId;
-      if (confirm('Delete this share link? Anyone using it will lose access.')) {
-        const success = await deleteShareLink(shareId);
-        if (success) {
-          await loadExistingShares();
-        }
-      }
-    });
+  // Find existing links by permission
+  shares.forEach(share => {
+    if (share.permission === 'viewer' && !shareLinksCache[activeTreeId].viewer) {
+      shareLinksCache[activeTreeId].viewer = `${window.location.origin}/s/${share.share_token}`;
+    } else if (share.permission === 'editor' && !shareLinksCache[activeTreeId].editor) {
+      shareLinksCache[activeTreeId].editor = `${window.location.origin}/s/${share.share_token}`;
+    }
   });
 }
 
 /**
- * Handle creating a new share link
+ * Handle copying a share link (creates if doesn't exist)
  */
-async function handleCreateShareLink() {
-  const createBtn = document.getElementById('share-create-btn');
-  const linkSection = document.getElementById('share-link-section');
-  const linkInput = document.getElementById('share-link-input');
-  const linkHint = document.getElementById('share-link-hint');
-
+async function handleCopyLink(permission, btn) {
   if (!activeTreeId) {
     alert('No tree selected to share');
     return;
   }
 
-  // Get selected permission
-  const permissionRadio = document.querySelector('input[name="share-permission"]:checked');
-  const permission = permissionRadio ? permissionRadio.value : 'viewer';
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Loading...';
 
-  // Disable button while creating
-  createBtn.disabled = true;
-  createBtn.textContent = 'Creating...';
-
-  const result = await createShareLink(activeTreeId, permission);
-
-  createBtn.disabled = false;
-  createBtn.textContent = 'Create Link';
-
-  if (result.success) {
-    // Show the link section
-    linkSection.style.display = 'block';
-    linkInput.value = result.shareUrl;
-    linkHint.textContent = permission === 'editor'
-      ? 'Anyone with this link can view and edit the tree'
-      : 'Anyone with this link can view the tree';
-
-    // Refresh the existing shares list
-    await loadExistingShares();
-  } else {
-    alert('Failed to create share link: ' + (result.error || 'Unknown error'));
+  // Check cache first
+  if (!shareLinksCache[activeTreeId]) {
+    shareLinksCache[activeTreeId] = { viewer: null, editor: null };
   }
-}
 
-/**
- * Handle copying the share link
- */
-function handleCopyShareLink() {
-  const linkInput = document.getElementById('share-link-input');
-  const copyBtn = document.getElementById('share-copy-btn');
+  let shareUrl = shareLinksCache[activeTreeId][permission];
 
-  if (!linkInput || !linkInput.value) return;
+  // Create link if it doesn't exist
+  if (!shareUrl) {
+    const result = await createShareLink(activeTreeId, permission);
+    if (result.success) {
+      shareUrl = result.shareUrl;
+      shareLinksCache[activeTreeId][permission] = shareUrl;
+    } else {
+      alert('Failed to create share link: ' + (result.error || 'Unknown error'));
+      btn.disabled = false;
+      btn.textContent = originalText;
+      return;
+    }
+  }
 
-  navigator.clipboard.writeText(linkInput.value);
-
-  copyBtn.textContent = 'Copied!';
-  setTimeout(() => {
-    copyBtn.textContent = 'Copy';
-  }, 2000);
+  // Copy to clipboard
+  try {
+    await navigator.clipboard.writeText(shareUrl);
+    btn.textContent = 'Copied!';
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }, 2000);
+  } catch (e) {
+    // Fallback for older browsers
+    const input = document.createElement('input');
+    input.value = shareUrl;
+    document.body.appendChild(input);
+    input.select();
+    document.execCommand('copy');
+    document.body.removeChild(input);
+    btn.textContent = 'Copied!';
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }, 2000);
+  }
 }
 
 /**
@@ -463,13 +413,9 @@ function migrateToV2(v1Data) {
  */
 async function loadAllTreesData(forceCloud = false) {
   try {
-    console.log('loadAllTreesData - currentUser:', currentUser ? 'yes' : 'no', 'forceCloud:', forceCloud);
-
     // If signed in, ALWAYS load from cloud (cloud is source of truth)
     if (typeof currentUser !== 'undefined' && currentUser && typeof loadTreesFromCloud === 'function') {
-      console.log('Loading from cloud...');
       const cloudData = await loadTreesFromCloud();
-      console.log('Cloud data:', cloudData ? Object.keys(cloudData.trees).length + ' trees' : 'none');
       if (cloudData && Object.keys(cloudData.trees).length > 0) {
         allTreesData = cloudData;
         activeTreeId = cloudData.activeTreeId;
@@ -520,7 +466,7 @@ async function loadAllTreesData(forceCloud = false) {
 
     // Check version and migrate if needed
     if (!parsed.version || parsed.version === 1) {
-      console.log('Migrating from v1 to v2 storage format');
+      // Migrate from v1 to v2 storage format
       allTreesData = migrateToV2(parsed);
       activeTreeId = allTreesData.activeTreeId;
       // Only save to localStorage, not cloud
@@ -558,12 +504,8 @@ async function loadAllTreesData(forceCloud = false) {
  */
 async function saveAllTreesData(saveAllToCloud = false) {
   try {
-    console.log('saveAllTreesData called, currentShareToken:', currentShareToken, 'currentPermission:', currentPermission);
-
     // If viewing via share link as editor, save differently
     if (currentShareToken && currentPermission === 'editor') {
-      console.log('Saving as editor...');
-      // Build tree object from current familyData
       const tree = {
         title: familyData.title,
         tagline: familyData.tagline,
@@ -573,18 +515,13 @@ async function saveAllTreesData(saveAllToCloud = false) {
       };
 
       if (typeof saveTreeAsEditor === 'function') {
-        const success = await saveTreeAsEditor(tree, currentShareToken);
-        console.log('Editor save result:', success);
-        if (!success) {
-          console.warn('Editor save failed');
-        }
+        await saveTreeAsEditor(tree, currentShareToken);
       }
       return; // Don't save to localStorage when editing shared tree
     }
 
     // If viewing as viewer, don't save at all
     if (currentShareToken && currentPermission === 'viewer') {
-      console.log('Viewer mode - not saving');
       return;
     }
 
@@ -1572,7 +1509,6 @@ function handleCardClick(event) {
   const person = getPersonById(personId);
 
   if (person) {
-    console.log('Clicked:', person.name);
     // TODO: Show profile modal
   }
 }
@@ -4670,17 +4606,13 @@ async function init() {
     // Wait for Supabase to be ready
     await new Promise(resolve => setTimeout(resolve, 200));
 
-    console.log('Loading shared tree with token:', route.token);
     const result = await getTreeByShareToken(route.token);
-    console.log('getTreeByShareToken result:', result);
 
     if (result && result.tree) {
       currentShareToken = route.token;
       currentPermission = result.permission;
       loadSharedTreeData(result.tree);
-      console.log('Shared tree loaded:', result.tree.title);
     } else {
-      console.error('Failed to load shared tree');
       alert('This share link is invalid or has expired.');
       window.location.href = '/';
       return;
@@ -4717,8 +4649,6 @@ async function init() {
       closeAllPopups();
     }
   });
-
-  console.log('Family Tree initialized');
 }
 
 // Run when DOM is loaded
