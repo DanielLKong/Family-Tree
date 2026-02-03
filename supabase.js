@@ -46,6 +46,23 @@ async function initAuth() {
       }
       isProcessingSignIn = true;
 
+      // Check if user was viewing a shared tree with pending editor permission
+      const isViewingSharedTree = typeof currentShareToken !== 'undefined' && currentShareToken;
+      const hasPendingEditor = typeof pendingEditorPermission !== 'undefined' && pendingEditorPermission;
+
+      if (isViewingSharedTree && hasPendingEditor) {
+        // Upgrade to editor permission now that user is signed in
+        if (typeof currentPermission !== 'undefined') {
+          currentPermission = 'editor';
+        }
+        pendingEditorPermission = false;
+        if (typeof updatePermissionUI === 'function') {
+          updatePermissionUI();
+        }
+        isProcessingSignIn = false;
+        return; // Don't migrate or reload - just upgrade permission
+      }
+
       // Show syncing overlay
       const syncOverlay = document.getElementById('sync-overlay');
       if (syncOverlay) syncOverlay.classList.add('active');
@@ -652,6 +669,162 @@ async function saveTreeAsEditor(tree, shareToken) {
 
   } catch (e) {
     console.error('saveTreeAsEditor error:', e.message);
+    return false;
+  }
+}
+
+// ============================================
+// PHOTO STORAGE (Supabase Storage)
+// ============================================
+
+const STORAGE_BUCKET = 'photos';
+
+/**
+ * Upload a photo to Supabase Storage
+ * @param {string} treeId - The tree ID
+ * @param {string} personId - The person ID
+ * @param {Blob} blob - The image blob
+ * @param {string} type - 'profile' or 'gallery'
+ * @returns {string|null} Public URL or null on error
+ */
+async function uploadPhotoToStorage(treeId, personId, blob, type = 'profile') {
+  if (!currentUser) {
+    console.error('Must be signed in to upload photos');
+    return null;
+  }
+
+  try {
+    // Generate unique filename
+    const timestamp = Date.now();
+    const filename = type === 'profile'
+      ? `${treeId}/${personId}/profile_${timestamp}.jpg`
+      : `${treeId}/${personId}/gallery/${timestamp}.jpg`;
+
+    // Upload to Supabase Storage
+    const { data, error } = await supabaseClient.storage
+      .from(STORAGE_BUCKET)
+      .upload(filename, blob, {
+        contentType: 'image/jpeg',
+        upsert: false
+      });
+
+    if (error) {
+      console.error('Photo upload failed:', error);
+      return null;
+    }
+
+    // Get public URL
+    const { data: urlData } = supabaseClient.storage
+      .from(STORAGE_BUCKET)
+      .getPublicUrl(filename);
+
+    return urlData.publicUrl;
+
+  } catch (e) {
+    console.error('uploadPhotoToStorage error:', e.message);
+    return null;
+  }
+}
+
+/**
+ * Delete a photo from Supabase Storage
+ * @param {string} photoUrl - The full photo URL
+ * @returns {boolean} Success
+ */
+async function deletePhotoFromStorage(photoUrl) {
+  if (!currentUser) {
+    console.error('Must be signed in to delete photos');
+    return false;
+  }
+
+  try {
+    // Extract path from URL
+    // URL format: https://xxx.supabase.co/storage/v1/object/public/photos/treeId/personId/...
+    const urlParts = photoUrl.split('/storage/v1/object/public/photos/');
+    if (urlParts.length !== 2) {
+      console.error('Invalid photo URL format');
+      return false;
+    }
+    const filePath = urlParts[1];
+
+    const { error } = await supabaseClient.storage
+      .from(STORAGE_BUCKET)
+      .remove([filePath]);
+
+    if (error) {
+      console.error('Photo delete failed:', error);
+      return false;
+    }
+
+    return true;
+
+  } catch (e) {
+    console.error('deletePhotoFromStorage error:', e.message);
+    return false;
+  }
+}
+
+/**
+ * Delete all photos for a person (when person is deleted)
+ * @param {string} treeId - The tree ID
+ * @param {string} personId - The person ID
+ * @returns {boolean} Success
+ */
+async function deletePersonPhotos(treeId, personId) {
+  if (!currentUser) return false;
+
+  try {
+    const folderPath = `${treeId}/${personId}`;
+
+    // List all files in the person's folder
+    const { data: files, error: listError } = await supabaseClient.storage
+      .from(STORAGE_BUCKET)
+      .list(folderPath, { limit: 100 });
+
+    if (listError) {
+      console.error('Error listing person photos:', listError);
+      return false;
+    }
+
+    if (!files || files.length === 0) {
+      return true; // No files to delete
+    }
+
+    // Build list of all files including nested gallery folder
+    const filesToDelete = [];
+
+    for (const file of files) {
+      if (file.name === 'gallery') {
+        // It's a folder - list its contents
+        const { data: galleryFiles } = await supabaseClient.storage
+          .from(STORAGE_BUCKET)
+          .list(`${folderPath}/gallery`, { limit: 100 });
+
+        if (galleryFiles) {
+          galleryFiles.forEach(gf => {
+            filesToDelete.push(`${folderPath}/gallery/${gf.name}`);
+          });
+        }
+      } else {
+        filesToDelete.push(`${folderPath}/${file.name}`);
+      }
+    }
+
+    if (filesToDelete.length > 0) {
+      const { error: deleteError } = await supabaseClient.storage
+        .from(STORAGE_BUCKET)
+        .remove(filesToDelete);
+
+      if (deleteError) {
+        console.error('Error deleting person photos:', deleteError);
+        return false;
+      }
+    }
+
+    return true;
+
+  } catch (e) {
+    console.error('deletePersonPhotos error:', e.message);
     return false;
   }
 }

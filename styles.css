@@ -3473,6 +3473,23 @@ body {
     color: var(--text-secondary);
 }
 
+.shared-signin-btn {
+    background: var(--text-primary);
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+}
+
+.shared-signin-btn:hover {
+    opacity: 0.85;
+}
+
 /* Hide things in shared view */
 .shared-view .sidebar-toggle {
     display: none;

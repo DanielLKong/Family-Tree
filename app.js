@@ -19,6 +19,7 @@ let activeTreeId = null;
 // Sharing state
 let currentShareToken = null;  // Set when viewing via share link
 let currentPermission = 'owner'; // 'owner' | 'editor' | 'viewer'
+let pendingEditorPermission = false; // True if editor access pending sign-in
 
 /**
  * Generate unique tree ID
@@ -98,7 +99,18 @@ async function handleRoute(route) {
       const result = await getTreeByShareToken(route.token);
       if (result) {
         currentShareToken = route.token;
-        currentPermission = result.permission;
+
+        // Check if this is an editor link and user is not signed in
+        const isSignedIn = typeof currentUser !== 'undefined' && currentUser;
+        if (result.permission === 'editor' && !isSignedIn) {
+          // Show as viewer until they sign in
+          currentPermission = 'viewer';
+          pendingEditorPermission = true;
+        } else {
+          currentPermission = result.permission;
+          pendingEditorPermission = false;
+        }
+
         loadSharedTreeData(result.tree);
         renderTree();
         updatePermissionUI();
@@ -158,6 +170,7 @@ function updatePermissionUI() {
   const isViewer = currentPermission === 'viewer';
   const isOwner = currentPermission === 'owner';
   const isSharedView = !!currentShareToken;
+  const isSignedIn = typeof currentUser !== 'undefined' && currentUser;
 
   // Hide/show edit controls based on permission
   document.body.classList.toggle('view-only', isViewer);
@@ -174,7 +187,6 @@ function updatePermissionUI() {
   const shareBtn = document.getElementById('share-btn');
   if (shareBtn) {
     // Only show share button if user can share (owner or editor) AND is signed in
-    const isSignedIn = typeof currentUser !== 'undefined' && currentUser;
     shareBtn.style.display = (canShare() && isSignedIn && !isSharedView) ? '' : 'none';
   }
 
@@ -183,13 +195,36 @@ function updatePermissionUI() {
   if (isSharedView && !sharedIndicator) {
     sharedIndicator = document.createElement('div');
     sharedIndicator.className = 'shared-view-indicator';
-    sharedIndicator.innerHTML = `
-      <span class="shared-view-badge">${isViewer ? 'Viewing' : 'Editing'}</span>
-      <span class="shared-view-text">Shared tree</span>
-    `;
+
+    // Show sign-in prompt if user has pending editor access
+    if (pendingEditorPermission && !isSignedIn) {
+      sharedIndicator.innerHTML = `
+        <span class="shared-view-badge">View Only</span>
+        <button class="shared-signin-btn" onclick="openAuthModal()">Sign in to edit</button>
+      `;
+    } else {
+      sharedIndicator.innerHTML = `
+        <span class="shared-view-badge">${isViewer ? 'Viewing' : 'Editing'}</span>
+        <span class="shared-view-text">Shared tree</span>
+      `;
+    }
+
     const header = document.querySelector('.header');
     if (header) {
       header.insertBefore(sharedIndicator, header.firstChild);
+    }
+  } else if (isSharedView && sharedIndicator) {
+    // Update existing indicator (e.g., after sign-in)
+    if (pendingEditorPermission && !isSignedIn) {
+      sharedIndicator.innerHTML = `
+        <span class="shared-view-badge">View Only</span>
+        <button class="shared-signin-btn" onclick="openAuthModal()">Sign in to edit</button>
+      `;
+    } else {
+      sharedIndicator.innerHTML = `
+        <span class="shared-view-badge">${isViewer ? 'Viewing' : 'Editing'}</span>
+        <span class="shared-view-text">Shared tree</span>
+      `;
     }
   } else if (!isSharedView && sharedIndicator) {
     sharedIndicator.remove();
@@ -2545,7 +2580,7 @@ function updatePerson(personId, updates) {
 /**
  * Remove a person from the family
  */
-function removePerson(personId) {
+async function removePerson(personId) {
   if (!canEdit()) {
     console.warn('Cannot remove person: view-only access');
     return false;
@@ -2553,6 +2588,11 @@ function removePerson(personId) {
 
   const person = getPersonById(personId);
   if (!person) return false;
+
+  // Delete person's photos from Storage if signed in
+  if (typeof currentUser !== 'undefined' && currentUser && activeTreeId) {
+    await deletePersonPhotos(activeTreeId, personId);
+  }
 
   // Remove as spouse from partner
   if (person.spouseId) {
@@ -3966,7 +4006,7 @@ function endDrag() {
 /**
  * Save the edited photo
  */
-function saveEditedPhoto() {
+async function saveEditedPhoto() {
   const person = getPersonById(photoModalState.personId);
   if (!person) return;
 
@@ -4036,10 +4076,28 @@ function saveEditedPhoto() {
     outputSize
   );
 
-  // Save as JPEG
-  person.photo = canvas.toDataURL('image/jpeg', 0.9);
+  // If signed in and have an active tree, upload to Supabase Storage
+  if (typeof currentUser !== 'undefined' && currentUser && activeTreeId) {
+    // Convert canvas to blob
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9));
+    const url = await uploadPhotoToStorage(activeTreeId, photoModalState.personId, blob, 'profile');
+    if (url) {
+      // Delete old photo from storage if it was a URL
+      if (person.photo && person.photo.startsWith('http')) {
+        await deletePhotoFromStorage(person.photo);
+      }
+      person.photo = url;
+    } else {
+      // Fallback to base64 if upload failed
+      person.photo = canvas.toDataURL('image/jpeg', 0.9);
+    }
+  } else {
+    // Not signed in - use base64
+    person.photo = canvas.toDataURL('image/jpeg', 0.9);
+  }
 
   closePhotoModal();
+  saveToLocalStorage();
   renderTree(); // Update tree card avatar
   openProfilePanel(photoModalState.personId);
 }
@@ -4047,12 +4105,18 @@ function saveEditedPhoto() {
 /**
  * Delete the current photo
  */
-function deletePhoto() {
+async function deletePhoto() {
   const person = getPersonById(photoModalState.personId);
   if (!person) return;
 
+  // Delete from Storage if it's a URL
+  if (person.photo && person.photo.startsWith('http') && typeof currentUser !== 'undefined' && currentUser) {
+    await deletePhotoFromStorage(person.photo);
+  }
+
   delete person.photo;
   closePhotoModal();
+  saveToLocalStorage();
   renderTree(); // Update tree card avatar
   openProfilePanel(photoModalState.personId);
 }
@@ -4093,7 +4157,7 @@ function addPhotoToGallery(personId, file) {
   const reader = new FileReader();
   reader.onload = (e) => {
     const img = new Image();
-    img.onload = () => {
+    img.onload = async () => {
       // Resize to max 800px for storage efficiency
       const maxDimension = 800;
       let { width, height } = img;
@@ -4114,13 +4178,25 @@ function addPhotoToGallery(personId, file) {
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, width, height);
 
-      const resizedPhoto = canvas.toDataURL('image/jpeg', 0.85);
-
       // Initialize photos array if needed
       if (!person.photos) {
         person.photos = [];
       }
-      person.photos.push(resizedPhoto);
+
+      // If signed in and have an active tree, upload to Supabase Storage
+      if (typeof currentUser !== 'undefined' && currentUser && activeTreeId) {
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+        const url = await uploadPhotoToStorage(activeTreeId, personId, blob, 'gallery');
+        if (url) {
+          person.photos.push(url);
+        } else {
+          // Fallback to base64 if upload failed
+          person.photos.push(canvas.toDataURL('image/jpeg', 0.85));
+        }
+      } else {
+        // Not signed in - use base64
+        person.photos.push(canvas.toDataURL('image/jpeg', 0.85));
+      }
 
       // Save and refresh panel
       saveToLocalStorage();
@@ -4134,9 +4210,15 @@ function addPhotoToGallery(personId, file) {
 /**
  * Remove a photo from the gallery
  */
-function removePhotoFromGallery(personId, index) {
+async function removePhotoFromGallery(personId, index) {
   const person = getPersonById(personId);
   if (!person || !person.photos) return;
+
+  // Delete from Storage if it's a URL
+  const photoUrl = person.photos[index];
+  if (photoUrl && photoUrl.startsWith('http') && typeof currentUser !== 'undefined' && currentUser) {
+    await deletePhotoFromStorage(photoUrl);
+  }
 
   person.photos.splice(index, 1);
   saveToLocalStorage();
