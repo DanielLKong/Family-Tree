@@ -677,7 +677,7 @@ async function saveTreeAsEditor(tree, shareToken) {
 // PHOTO STORAGE (Supabase Storage)
 // ============================================
 
-const STORAGE_BUCKET = 'photos';
+const STORAGE_BUCKET = 'Photos';
 
 /**
  * Upload a photo to Supabase Storage
